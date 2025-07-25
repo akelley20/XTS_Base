@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.8">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
   <POU Name="ApplicationMover" Id="{516536b5-5233-0a95-01e8-9585147c75fa}" SpecialFunc="None">
     <Declaration><![CDATA[// This function Block extends the Referenced Library Mover (FB), so the user can expand the capabilities of the XTS Mover Functions
 FUNCTION_BLOCK ApplicationMover EXTENDS Mover
@@ -8,9 +8,7 @@ END_VAR
 VAR_OUTPUT
 END_VAR
 VAR
-	cnt: UDINT;
 	_PositionLag: LREAL;
-	fbMC_CalcDynamicsByRampTime: MC_CalcDynamicsByRampTime := (Velocity := 1, RampTime := 1, Stiffness := 0.5);
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -31,55 +29,13 @@ SUPER^.Cyclic(GroupReference);
 //		you must call Mover[] array index directly, as Station/Zone/PositionTrig/SpeedTrig do not know about ApplicationMover add ons
 
 // Add ApplicationMover specific code here
-cnt:= cnt + 1;
+
+// example position lag property
 _PositionLag:= THIS^.AxisReference.NcToPlc.PosDiff;
 
 // Latch Errors
 
 // Call Fbs Cyclically
-]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="MoveToStationByRampTime" Id="{30fb390b-b4a8-0444-29f0-600dae10b753}">
-      <Declaration><![CDATA[METHOD MoveToStationByRampTime
-VAR_INPUT
-	DestinationStation	: REFERENCE TO Station;	
-    Velocity     : LREAL;
-    RampTime     : LREAL;
-    Stiffness    : LREAL;
-	Gap			 : LREAL;
-END_VAR
-VAR
-	MotionParameters: MotionParameters_typ;
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[// This method internally calls MC_CalcDynamicsByRampTime from Tc2_MC2.lib
-// https://infosys.beckhoff.com/content/1033/tcplclib_tc2_mc2/13611300875.html?id=1298283191705576852
-
-fbMC_CalcDynamicsByRampTime(
-	Velocity:= Velocity, 
-	RampTime:= RampTime, 
-	Stiffness:= Stiffness, 
-	Error=> , 
-	ErrorID=> , 
-	Acceleration=> , 
-	Deceleration=> , 
-	Jerk=> );
-
-MotionParameters.Velocity			:= Velocity;
-MotionParameters.Acceleration		:= fbMC_CalcDynamicsByRampTime.Acceleration;
-MotionParameters.Deceleration		:= fbMC_CalcDynamicsByRampTime.Deceleration;
-MotionParameters.Jerk				:= fbMC_CalcDynamicsByRampTime.Jerk;
-MotionParameters.Gap				:= Gap;
-MotionParameters.Direction			:= Tc3_Mc3Definitions.MC_Direction.mcDirectionPositive;
-
-IF NOT fbMC_CalcDynamicsByRampTime.Error THEN
-	SUPER^.MotionParameters:= MotionParameters;
-	SUPER^.MoveToStation(DestinationStation);
-ELSE
-	ErrorId		:= fbMC_CalcDynamicsByRampTime.ErrorID;
-	ErrorOrigin	:= CONCAT( InstancePath, 'MoveToStationByRampTime' );
-END_IF
 ]]></ST>
       </Implementation>
     </Method>
@@ -96,17 +52,5 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
-    <LineIds Name="ApplicationMover">
-      <LineId Id="1" Count="0" />
-    </LineIds>
-    <LineIds Name="ApplicationMover.Cyclic">
-      <LineId Id="1" Count="14" />
-    </LineIds>
-    <LineIds Name="ApplicationMover.MoveToStationByRampTime">
-      <LineId Id="1" Count="27" />
-    </LineIds>
-    <LineIds Name="ApplicationMover.PositionLag.Get">
-      <LineId Id="1" Count="1" />
-    </LineIds>
   </POU>
 </TcPlcObject>
