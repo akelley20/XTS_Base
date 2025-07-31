@@ -1752,7 +1752,7 @@ LocalVars.CurrentDestStation		REF= 0;
 
 IF ( newCallTime - LocalVars.lastCallSync ) > 1 THEN
 	MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverSyncToAxis, 0 );
-	MsgCreate.ipArguments.Clear().AddString(THIS^.InstancePath).AddString(THIS^.SourceInstancePath);
+	MsgCreate.ipArguments.Clear().AddString(THIS^.InstancePath).AddString(THIS^.SourceInstancePath).AdduDINT(MasterAxis.NcToPlc.AxisId);
 	MsgCreate.Send(0);
 END_IF
 
