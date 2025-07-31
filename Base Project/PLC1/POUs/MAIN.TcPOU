@@ -140,6 +140,18 @@ CASE State OF
 		IF XTS.State = XTS_DISABLED THEN
 			State					:= MS_OFF;
 		END_IF;
+		
+	MS_ERROR:
+		// and error has occured
+		// the recovery from this is application dependent and can range from disabling and re-enabling the XTS
+		// to specific needs for each mover/station/zone and how to clear them of tooling and/or defective product
+		
+		// the simplest form of error handling where the XTS is disabled and re-enabled is available as this commented code below
+// 		IF NOT MainCommands.Enable THEN
+// 			XTS.Enable := FALSE;
+// 			State					:= MS_OFF;
+// 		END_IF;
+			
 	
 END_CASE
 
