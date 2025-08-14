@@ -1,10 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
   <GVL Name="Param" Id="{673621fc-c806-000b-08ea-fd34161e1bd8}" ParameterList="True">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL CONSTANT
 	// The following should be set to a value **equal to or greater than** the number of movers needed
 	MAX_MOVERS   			: USINT := 100;   // Movers
+	MAX_POSITIONTRIGGERS	: USINT := 100;
 	
 	// The following should be set to a value **equal to or greater than** the number of objectives needed
 	NUM_MOVERLISTS			: USINT := 10;	// Mover Lists

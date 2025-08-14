@@ -55,7 +55,7 @@ CASE State OF
 	// off (idle) state, waiting for enable command
 	MS_OFF:
 		// wait for enable command
-		IF MainCommands.Enable THEN
+		IF MainCommands.Enable AND XTS.System.EnvironmentIsReady THEN
 			// initialize stations, positions and triggers
 			Initializing();
 			// enable the XTS
