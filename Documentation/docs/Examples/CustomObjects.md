@@ -187,7 +187,7 @@ END_IF
 // Call the first camera station (station 2) with appropriate parameters
 LineScan2(
 	CameraSpeed := 100.0,		// mm/s in front of the camera
-	ExitSpeed := 1000.0,		// ms/s when scanning is complete
+	ExitSpeed := 1000.0,		// mm/s when scanning is complete
 	StartPosition := 200.0,	// mm
 	EndPosition := 300.0,		// mm
 	Camera := Camera2,
@@ -205,7 +205,7 @@ END_IF
 // Call the second camera station (station 4) with appropriate parameters
 LineScan4(
 	CameraSpeed := 50.0,		// mm/s in front of the camera
-	ExitSpeed := 1000.0,		// ms/s when scanning is complete
+	ExitSpeed := 1000.0,		// mm/s when scanning is complete
 	StartPosition := 600.0,	// mm
 	EndPosition := 700.0,		// mm
 	Camera := Camera4,
