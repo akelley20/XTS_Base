@@ -48,6 +48,7 @@ nav:
             - Track:                CodeReference/Objects/Track.md
             - Zone:                 CodeReference/Objects/Zone.md
             - System:             CodeReference/Objects/Mediator.md
+        - Parameters:           CodeReference/Parameters.md
         - Diagnostics:
             - Basics:           CodeReference/Diagnostics/Basics.md
             - ErrorMovers:      CodeReference/Diagnostics/ErrorMovers.md
@@ -57,3 +58,4 @@ nav:
     - Examples:
         - Application Mover:    Examples/ApplicationMover.md
         - Station to Station:   Examples/StationRouting.md
+        - Custom Objects:       Examples/CustomObjects.md
