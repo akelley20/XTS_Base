@@ -17,7 +17,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentDestinationPosition Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentDestinationPosition Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -31,7 +31,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentDestinationTrack Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentDestinationTrack Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -46,7 +46,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentMoveType Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentMoveType Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -60,7 +60,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentObjective Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentObjective Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -74,7 +74,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentTrack Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The CurrentTrack Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -200,7 +200,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The IsSyncedToMover Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The IsSyncedToMover Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -213,7 +213,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The MasterMover Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The MasterMover Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -227,7 +227,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The Index Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The MoverIndex Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -303,7 +303,7 @@ PROPERTY OTCID : OTCID]]></Declaration>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The OTCID get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+          <ST><![CDATA[ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The OTCID get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -316,7 +316,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The Payload Get method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The Payload Get property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Get>
       <Set Name="Set" Id="{0f0e05f2-3b7b-4da0-bed5-5c8e12c1a732}">
@@ -326,7 +326,7 @@ END_VAR
         <Implementation>
           <ST><![CDATA[
 
-ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The Payload Set method has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
+ADSLOGSTR( ADSLOG_MSGTYPE_ERROR, 'The Payload Set property has been called on an invalid Mover reference returned by %s.',THIS^.SourceInstancePath);]]></ST>
         </Implementation>
       </Set>
     </Property>
