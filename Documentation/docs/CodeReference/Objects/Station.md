@@ -106,6 +106,28 @@ This value can be changed at runtime and will update on the visualization. This 
 
 This value is only used to help calculate throughput `.Statistics` on the mover and is used in combination with the `.Blocked` property.
 
+### .Id
+
+*DINT*
+
+> A unique identifier for a station.
+
+This value is assigned by the mediator when a station is registered with it. It will return -1 until the station is registered. This parameter is typically not used during normal machine production where stations are accessed directly with `XTS.Station[]` or similar direct references. The typical use case for this parameter is to record and re-use a station target for a mover when it's motion is interrupted for safety or cold starts.
+
+```javascript
+// store the id of a mover's destination when a safety event starts
+IF Mover[1].LocalVars.CurrentDestStation <> 0 THEN
+	MoverDestination := Mover[1].LocalVars.CurrentDestStation^.Id;
+END_IF
+
+// later after safety is restored and movers need to continue to their previous destination
+IF MoverDestination > 0 THEN
+	Mover[1].MoveToStation(Mediator.StationArray[MoverDestination]^);
+END_IF
+```
+
+!!! Caution
+	The value of `.Id` is consistent from cold-start to cold-start unless stations have been added to the system such as during debug and commissioning. When adding stations to a system be careful to have a code path to ignore any previous stations IDs stored in persistent data for this specific cold-start.
 
 ### .MoverInPosition
 
