@@ -268,7 +268,7 @@ IF __ISVALIDREF( Station ) THEN
 	IF duplicateFound = FALSE THEN
 		THIS^.StationArray[emptyIDX]		:= ADR( Station );
 		// store unique index for station
-		Station.internalId := UDINT_TO_DINT(emptyIDX);
+		Station.Id := emptyIDX;
 	END_IF
 END_IF]]></ST>
       </Implementation>

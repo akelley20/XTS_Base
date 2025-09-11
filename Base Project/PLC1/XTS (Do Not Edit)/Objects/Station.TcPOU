@@ -283,9 +283,17 @@ END_VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[ID := internalId;]]></ST>
+          <ST><![CDATA[ID := dint_to_udint(internalId);]]></ST>
         </Implementation>
       </Get>
+      <Set Name="Set" Id="{719162ec-9f64-0d7b-389b-a7f3a886f102}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[internalId := udint_to_dint(ID);]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Property Name="MoverInPosition" Id="{b2f2f406-c577-4151-a939-55cf737be01a}" FolderPath="Properties\">
       <Declaration><![CDATA[{attribute 'monitoring' := 'variable'}
