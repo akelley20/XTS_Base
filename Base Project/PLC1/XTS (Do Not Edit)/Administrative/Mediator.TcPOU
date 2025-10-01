@@ -137,7 +137,7 @@ END_IF
 internalMoverListRecalc := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="AddMoverList" Id="{fa372345-a99c-01d2-2d94-cc2fd6bab53d}" FolderPath="Methods\">
+    <Method Name="AddMoverList" Id="{fa372345-a99c-01d2-2d94-cc2fd6bab53d}">
       <Declaration><![CDATA[METHOD AddMoverList : BOOL
 VAR_INPUT
 	
@@ -291,6 +291,8 @@ IF __ISVALIDREF( Station ) THEN
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.StationArray[emptyIDX]		:= ADR( Station );
+		// store unique index for station
+		Station.Id := emptyIDX;
 	END_IF
 END_IF]]></ST>
       </Implementation>
