@@ -1121,6 +1121,22 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="MuteAllPositionTriggers" Id="{bc0b53da-8e8f-05bf-3533-9a0a07403ca4}" FolderPath="Methods\">
+      <Declaration><![CDATA[METHOD MuteAllPositionTriggers : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 0 TO Param.MAX_POSITIONTRIGGERS-1 DO
+	IF PositionTriggerArray[i] <> 0 THEN
+		PositionTriggerArray[i]^.MuteCurrent();
+	END_IF
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="PartMotorModules48vReady" Id="{98a45699-b0a3-05f3-058d-be5a14452817}" FolderPath="Methods\">
       <Declaration><![CDATA[METHOD PartMotorModules48vReady : BOOL
 VAR_INPUT
