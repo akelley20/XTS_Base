@@ -3,11 +3,14 @@
   <GVL Name="Param" Id="{673621fc-c806-000b-08ea-fd34161e1bd8}" ParameterList="True">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL CONSTANT
-	// The following should be set to a value **equal to or greater than** the number of movers needed
-	MAX_MOVERS   			: USINT := 100;   // Movers
-	MAX_POSITIONTRIGGERS	: USINT := 100;
+	// The following should be set to a value **equal to or greater than** the number of objects needed
+	MAX_MOVERS   			: USINT := 100;	// Movers
+	MAX_POSITIONTRIGGERS	: USINT := 100;	// Position triggers
+	MAX_STATIONS			: USINT := 100;	// Stations
+	MAX_ZONES				: USINT := 100;	// Zones
 	
 	// The following should be set to a value **equal to or greater than** the number of objectives needed
+	// it's also possible to declare additional stations, zones and position triggers in MAIN
 	NUM_MOVERLISTS			: USINT := 10;	// Mover Lists
 	NUM_POSITIONTRIGGERS	: USINT := 10;	// Position Triggers
 	NUM_STATIONS			: USINT := 10;	// Stations

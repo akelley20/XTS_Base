@@ -8,9 +8,9 @@ VAR_INPUT
 	MoverArray				: ARRAY [1..Param.MAX_MOVERS] OF POINTER TO Mover;
 	
 	MoverListArray			: ARRAY [0..Param.NUM_MOVERLISTS-1] OF POINTER TO MoverList;
-	PositionTriggerArray	: ARRAY [0..Param.NUM_POSITIONTRIGGERS-1] OF POINTER TO PositionTrigger;
-	StationArray			: ARRAY [0..Param.NUM_STATIONS-1] OF POINTER TO Station;
-	ZoneArray				: ARRAY [0..Param.NUM_ZONES-1] OF POINTER TO Zone;
+	PositionTriggerArray	: ARRAY [0..Param.MAX_POSITIONTRIGGERS-1] OF POINTER TO PositionTrigger;
+	StationArray			: ARRAY [0..Param.MAX_STATIONS-1] OF POINTER TO Station;
+	ZoneArray				: ARRAY [0..Param.MAX_ZONES-1] OF POINTER TO Zone;
 	TrackArray				: ARRAY [0..Param.NUM_TRACKS] OF POINTER TO Track;	// track 0 is a special absolute case, this makes the array 1 larger than normal	
 
 	GROUP_REF				: AXES_GROUP_REF;
@@ -79,8 +79,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[
@@ -100,11 +100,17 @@ IF __ISVALIDREF( Mover ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF	
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddMover System Array is full. %s not added. Check Params.MAX_MOVERS' , Mover.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		
@@ -141,8 +147,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -162,11 +168,17 @@ IF __ISVALIDREF( MoverList ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'MoverList System Array is full. %s not added. Check Params.MAX_MOVERLISTS' , MoverList.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.MoverListArray[emptyIDX]		:= ADR( MoverList );
@@ -187,8 +199,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -208,11 +220,17 @@ IF __ISVALIDREF( PositionTrigger ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddPositionTrigger System Array is full. %s not added. Check Params.MAX_POSITIONTRIGGERS' , PositionTrigger.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.PositionTriggerArray[emptyIDX]		:= ADR( PositionTrigger );
@@ -238,8 +256,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -259,11 +277,17 @@ IF __ISVALIDREF( Station ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddStation System Array is full. %s not added. Check Params.MAX_STATIONS' , Station.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.StationArray[emptyIDX]		:= ADR( Station );
@@ -324,8 +348,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -345,11 +369,17 @@ IF __ISVALIDREF( Zone ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddZone System Array is full. %s not added. Check Params.MAX_ZONES' , Zone.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.ZoneArray[emptyIDX]		:= ADR( Zone );
@@ -528,13 +558,13 @@ FOR i := 1 TO Param.MAX_MOVERS DO
 	END_IF
 END_FOR
 
-FOR i := 0 TO Param.NUM_STATIONS - 1 DO
+FOR i := 0 TO Param.MAX_STATIONS - 1 DO
 	IF StationArray[i] <> 0 THEN
 		StationArray[i]^.Cyclic();
 	END_IF
 END_FOR
 
-FOR i := 0 TO Param.NUM_POSITIONTRIGGERS - 1 DO
+FOR i := 0 TO Param.MAX_POSITIONTRIGGERS - 1 DO
 	IF PositionTriggerArray[i] <> 0 THEN
 		PositionTriggerArray[i]^.Cyclic();
 	END_IF
@@ -855,16 +885,16 @@ IF THIS^.InfoServerIsReady AND internalEnabled AND Param.AUTO_POPULATE_STATIONS 
 			
 		40:
 			// calculate minimum number of stations that can be set up
-			nUsableStations := MIN(nInfoServerStations, Param.NUM_STATIONS);
+			nUsableStations := MIN(nInfoServerStations, Param.MAX_STATIONS);
 			workingStation := 0;
 			FOR i := 1 TO nUsableStations DO
 				workingStation := workingStation + 1;
 				// in case a sparse Station array is used, only detect stations that have a position value <> 0
-				WHILE (workingStation < Param.NUM_STATIONS AND_THEN (StationArray[workingStation] = 0 OR_ELSE StationArray[workingStation]^.Position = 0)) DO
+				WHILE (workingStation < Param.MAX_STATIONS AND_THEN (StationArray[workingStation] = 0 OR_ELSE StationArray[workingStation]^.Position = 0)) DO
 					workingStation := workingStation + 1;
 				END_WHILE
 				// check for valid working station, and exit this for loop iteration if we're outside it
-				IF workingStation >= Param.NUM_STATIONS THEN
+				IF workingStation >= Param.MAX_STATIONS THEN
 					EXIT;
 				END_IF
 				// get XTS_Base Station pointer
@@ -1162,11 +1192,15 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// reset statistics at all postion triggers and stations
-FOR i := 0 TO Param.NUM_POSITIONTRIGGERS-1 DO
-	PositionTriggerArray[i]^.ResetStatistics();
+FOR i := 0 TO Param.MAX_POSITIONTRIGGERS-1 DO
+	IF PositionTriggerArray[i] <> 0 THEN
+		PositionTriggerArray[i]^.ResetStatistics();
+	END_IF
 END_FOR
-FOR i := 0 TO Param.NUM_STATIONS-1 DO
-	StationArray[i]^.ResetStatistics();
+FOR i := 0 TO Param.MAX_STATIONS-1 DO
+	IF StationArray[i] <> 0 THEN
+		StationArray[i]^.ResetStatistics();
+	END_IF
 END_FOR
 ]]></ST>
       </Implementation>
