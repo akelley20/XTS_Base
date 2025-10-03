@@ -134,6 +134,9 @@ FOR i := 1 TO Param.MAX_MOVERS DO
 	
 			moverLastPos[i] 		:= modTrackPosition;
 		END_IF
+	ELSE
+		// when movers are unregistered from the position trigger make sure to trigger re-initialization code
+		moverInitialized[i] := FALSE;
 	END_IF
 
 END_FOR
