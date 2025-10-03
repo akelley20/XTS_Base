@@ -1015,6 +1015,9 @@ ELSE	// otherwise let 'er rip
 		LocalVars.fbMoveAbsCA[1].Execute		:= FALSE;		// if necessary, interrupt this one
 		
 		LocalVars.fbMoveAbsCA[0]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbMoveAbsCA[1].Busy = FALSE THEN
 		
@@ -1038,6 +1041,9 @@ ELSE	// otherwise let 'er rip
 		LocalVars.fbMoveAbsCA[0].Execute		:= FALSE;		// if necessary, interrupt this one
 		
 		LocalVars.fbMoveAbsCA[1]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		 
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverMoveToPositionOverload,0 );
@@ -1113,6 +1119,9 @@ ELSE	// otherwise let 'er rip
 		
 		LocalVars.fbMoveAbsCA[0]( Axis := AxisReference );
 		
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
+		
 	ELSIF LocalVars.fbMoveAbsCA[1].Busy = FALSE THEN
 		
 		LocalVars.fbMoveAbsCA[1].Jerk			:= MotionParameters.Jerk;
@@ -1133,7 +1142,10 @@ ELSE	// otherwise let 'er rip
 		LocalVars.fbMoveAbsCA[1].Execute		:= TRUE;		// execute this block, and...
 		LocalVars.fbMoveAbsCA[0].Execute		:= FALSE;		// if necessary, interrupt this one
 
-		LocalVars.fbMoveAbsCA[1]( Axis := AxisReference );	
+		LocalVars.fbMoveAbsCA[1]( Axis := AxisReference );
+		
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverMoveToStationOverload,0 );
@@ -1220,6 +1232,9 @@ ELSE
 		LocalVars.fbMoveRelCA[1].Execute		:= FALSE;		// if necessary, interrupt this one
 		
 		LocalVars.fbMoveRelCA[0]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbMoveRelCA[1].Busy = FALSE THEN
 		
@@ -1240,6 +1255,10 @@ ELSE
 		LocalVars.fbMoveRelCA[0].Execute		:= FALSE;		// if necessary, interrupt this one
 
 		LocalVars.fbMoveRelCA[1]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
+
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverMoveVelocityOverload,0 );
 		MsgCreate.ipArguments.Clear().AddString(THIS^.InstancePath).AddString(THIS^.SourceInstancePath).AddLReal(DesiredVelocity);
@@ -1711,6 +1730,9 @@ ELSE
 		LocalVars.fbGearInPosAxisCA[0].BufferMode			:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosAxisCA[0]( Master := MasterAxis, Slave := THIS^.AxisReference );		
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbGearInPosAxisCA[1].Busy = FALSE THEN
 		
@@ -1742,6 +1764,9 @@ ELSE
 		LocalVars.fbGearInPosAxisCA[1].BufferMode			:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosAxisCA[1]( Master := MasterAxis, Slave := THIS^.AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverSyncToAxisOverload, 0 );
@@ -1837,6 +1862,9 @@ ELSE	// let 'er rip
 		LocalVars.fbGearInPosMoverCA[0].BufferMode				:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosMoverCA[0]( Master := LocalVars.MasterMover.AxisReference, Slave := THIS^.AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbGearInPosMoverCA[1].Busy = FALSE THEN
 		
@@ -1878,6 +1906,9 @@ ELSE	// let 'er rip
 		LocalVars.fbGearInPosMoverCA[1].BufferMode				:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosMoverCA[1]( Master := LocalVars.MasterMover.AxisReference, Slave := THIS^.AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverSyncToMoverOverload,0 );
