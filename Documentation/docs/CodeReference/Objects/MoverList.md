@@ -142,16 +142,8 @@ MoverListA.GetMoverByLocation( 3, 3000, MC_Negative_Direction ).SetAcceleration(
 
 ### LogicalComplement
 
-*LogicalComplement()*
-
-> Returns the logical complement of the current MoverList. Thus the returned list will list all movers not in the current MoverList.
-
-```javascript
-// System contains: M1, M2, M3, M4, M5
-// MoverListA =     M1, M2, M3
-MoverListA.LogicalCompliment(); // returns: M4, M5
-```
-
+!!! Removed
+	This method has been removed to help with better code readability and to make the LogicalXXX methods work with the same parameter signatures. The same functionality can be achieved with the use of [LogicalDifference](#logicaldifference): `MoverListA.LogicalDifference(XTS.System.CompleteMoverList)`.
 
 ### LogicalDifference
 
