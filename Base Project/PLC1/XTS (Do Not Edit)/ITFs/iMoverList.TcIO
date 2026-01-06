@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.13">
   <Itf Name="iMoverList" Id="{9cc4a2ad-2506-4bdd-acf3-bfbfde25ab77}">
     <Declaration><![CDATA[INTERFACE iMoverList]]></Declaration>
     <Folder Name="Methods" Id="{82f0078e-13af-0a56-283e-d65bfe6ce910}" />
@@ -92,36 +92,29 @@ END_VAR
         <Declaration><![CDATA[]]></Declaration>
       </Get>
     </Property>
-    <Method Name="LogicalComplement" Id="{99897a70-e30e-0da3-0186-cef07523538c}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalComplement : MoverList
-VAR_INPUT
-END_VAR
-
-]]></Declaration>
-    </Method>
     <Method Name="LogicalDifference" Id="{28dd98c9-5c2b-06ab-24f3-3fbd8540614a}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalDifference : MoverList
+      <Declaration><![CDATA[METHOD LogicalDifference : iMoverList
 VAR_INPUT
 	
-	MoverList		: MoverList;
+	MoverList		: REFERENCE TO MoverList;
 
 END_VAR
 ]]></Declaration>
     </Method>
     <Method Name="LogicalIntersect" Id="{044089b7-d05a-06ed-1b08-0d7870b3db96}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalIntersect : MoverList
+      <Declaration><![CDATA[METHOD LogicalIntersect : IMoverList
 VAR_INPUT
 	
-	MoverList		: MoverList;
+	MoverList		: REFERENCE TO MoverList;
 
 END_VAR
 ]]></Declaration>
     </Method>
     <Method Name="LogicalUnion" Id="{a80cf7c9-101b-0ad9-0af0-3ff72543790d}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalUnion : MoverList
+      <Declaration><![CDATA[METHOD LogicalUnion : IMoverList
 VAR_INPUT
 	
-	MoverList		: MoverList;
+	MoverList		: REFERENCE TO MoverList;
 
 END_VAR
 ]]></Declaration>
