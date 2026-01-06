@@ -107,6 +107,8 @@ CASE State OF
 			XTS.System.CompleteMoverList.HaltAll();
             State          			:= MS_STOPPED;
 		ELSIF RecoveryComplete THEN
+			// clear any position trigers that were not consumed during recovery
+			XTS.System.MuteAllPositionTriggers();
 			// recovery sequence is complete, move on to run state
 			State					:= MS_RUNNING;
         END_IF
@@ -221,11 +223,13 @@ END_IF]]></ST>
 // it is intended to provide a single command to each mover to facilitate recovery
 // other commands such as resetting counters and timers should also be carried out here
 
+// clear any position trigers that were not consumed before the restart
+XTS.System.MuteAllPositionTriggers();
+
 // send all movers to station 0
 XTS.System.CompleteMoverList.SetAllVelocity(MainCommands.mediumVelocity).MoveAllToStation( XTS.Station[0] );
 //movers near station 0 (zone 0) need to first move away from the station
 XTS.Zone[0].CurrentMoverList.MoveAllVelocity(MainCommands.lowVelocity);
-XTS.PositionTrigger[3].MuteCurrent();
 // Restart statistics
 XTS.System.ResetStatistics();
 
