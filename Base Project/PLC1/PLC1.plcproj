@@ -8,7 +8,7 @@
     <WriteProductVersion>true</WriteProductVersion>
     <GenerateTpy>false</GenerateTpy>
     <Name>PLC1</Name>
-    <ProgramVersion>3.1.4026.19</ProgramVersion>
+    <ProgramVersion>3.1.4026.20</ProgramVersion>
     <Application>{4aad4b07-8544-4a4a-85a6-bcc87a471a4a}</Application>
     <TypeSystem>{2d2f50a8-8039-4540-9b70-b5591df2aca6}</TypeSystem>
     <Implicit_Task_Info>{f651b4e4-4e5e-4ff5-98bf-9ff99fb35d4a}</Implicit_Task_Info>
@@ -2579,6 +2579,12 @@
             <v>DisabledWarningIds</v>
             <v>5410</v>
           </d>
+        </o>
+        <v>{eeeeeeee-3909-4298-8022-501ac3238667}</v>
+        <o>
+          <v n="Name">"{eeeeeeee-3909-4298-8022-501ac3238667}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
         </o>
         <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
         <o>
