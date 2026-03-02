@@ -80,7 +80,32 @@ CASE State OF
 	XTS_RESETTING:
 		// Part reset is handled outside of the state machine and monitored here before moving on
 		IF PartResetSent THEN
+			State := XTS_DETECTING_CHECK;
+			
+		END_IF
+		
+	XTS_DETECTING_CHECK:
+		// in cases where 24v power or ethercat are lost, movers can become undetected if they are on the affected motor modules
+		// check for the need to redetect movers and run the redetection sequence or jump to registering
+		IF (System.XPU.GetAreAllPositionsValid()) THEN
 			State := XTS_REGISTERING;
+		ELSE
+			System.XPU.TriggerRedetection();
+			State := XTS_DETECTING;
+		END_IF
+		
+	XTS_DETECTING:
+		// wait for the completeion of mover detection and mover 1 detection (which is implicit after the redetection call)
+		IF (System.XPU.GetAreAllPositionsValid()
+			AND MAIN.XTS.System.XPU.GetDetectionState() = DetectionStateEnum.Succeeded
+			AND MAIN.XTS.System.XPU.GetMoverIdDetectionState() = MoverIdDetectionStateEnum.Valid
+			) THEN
+			State := XTS_Registering;
+		END_IF
+			
+		// exit if the incoming enable bit is pulled
+		IF (NOT Enable) THEN
+			State := XTS_DISABLING;
 		END_IF
 		
 	XTS_REGISTERING:
