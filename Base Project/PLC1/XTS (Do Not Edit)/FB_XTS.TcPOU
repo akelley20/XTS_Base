@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.17">
   <POU Name="FB_XTS" Id="{87c35dfd-521b-066c-1ce4-3f633fe319d2}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_XTS
 VAR_GENERIC CONSTANT
@@ -32,6 +32,8 @@ VAR_OUTPUT
 	MoverPositions	: ARRAY [1..NUM_MOVERS] OF REAL;
 	MoverErrors		: ARRAY [1..NUM_MOVERS] OF BOOL;
 	MoverErrorIDs	: ARRAY [1..NUM_MOVERS] OF UDINT;
+	MoverStates		: ARRAY [1..NUM_MOVERS] OF DINT;
+	XtsState		: DINT;
 	NumMovers		: USINT;
 END_VAR
 VAR
@@ -143,12 +145,14 @@ END_CASE
 // call system cyclically
 System.Cyclic(NUM_MOVERS := NUM_MOVERS);
 
-// update global data
+// update output data
 FOR i := 1 TO NUM_MOVERS DO
 	MoverPositions[i] := LREAL_TO_REAL(Mover[i].TrackInfo.TrackPosition);
 	MoverErrors[i] := Mover[i].Error;
 	MoverErrorIDs[i] := Mover[i].ErrorID;
+	MoverStates[i] := Mover[i].LocalVars.State;
 END_FOR
+XtsState := State;
 NumMovers := NUM_MOVERS;]]></ST>
       </Implementation>
     </Method>
