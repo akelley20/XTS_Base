@@ -499,7 +499,7 @@ END_VAR
 
 VAR
 	eMoverIdDetectionMode : MoverIdDetectionMode;
-	eMoverIdDetectionState : MoverIdDetectionStatus;
+	eMoverIdDetectionState : MoverIdDetectionStateEnum;
 END_VAR
 
 VAR_INST
