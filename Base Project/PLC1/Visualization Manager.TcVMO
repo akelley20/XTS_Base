@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.8">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.17">
   <VisuManager Name="Visualization Manager" Id="{33a0cfe5-2fc4-0d20-28f8-5d332477a831}">
     <XmlArchive>
       <Data>
@@ -51,6 +51,7 @@
             <v n="BackImageRight">0</v>
             <v n="BackImageWarning">true</v>
             <v n="BackImageLimit">true</v>
+            <v n="ResponsiveVisualizationSize">false</v>
           </o>
           <o n="RegisterDesc" t="GenericFbDescription">
             <d n="FbMethods" t="CaseInsensitiveHashtable" ckt="String" cvt="Guid">
@@ -70,7 +71,7 @@
               <v n="Modifiers">7</v>
               <v n="DevType">4096</v>
               <v n="DevId">"1002 0004"</v>
-              <v n="DevVersion">"1.0.0.7"</v>
+              <v n="DevVersion">"1.0.0.9"</v>
               <v n="BaseProvider">{cb73a13e-6ccc-4bc6-8859-f5aa98bb116b}</v>
               <l n="Keys" t="ArrayList" cet="DeviceBasedHotkeyItem">
                 <o>
