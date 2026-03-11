@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.17">
   <POU Name="Mediator" Id="{164d51b4-07ec-0e46-0eb0-392af39d7d3a}" SpecialFunc="None">
     <Declaration><![CDATA[{attribute 'reflection'}
 FUNCTION_BLOCK Mediator
@@ -45,7 +45,6 @@ VAR
 	// ========= XTS Utility Diagnostics =========
 	fbXtsEnvironment				: FB_TcIoXtsEnvironment;
 	fbXtsEnvironmentVisu			: FB_XtsEnvironmentVisu;
-	stXtsEnvironmentConfiguration	: ST_XtsEnvironmentConfiguration;	
 	nEnvironmentState				: INT;
 	internalInfoServerOTCID			: UDINT;
 
@@ -415,7 +414,7 @@ IF (NOT internalMotorModule48v.calcComplete) THEN
 	// Monitor DriveStatus to disallow motion commands before high drive has been achieved.
 	IF fbXtsEnvironment.P_IsInitialized THEN
 	// Get number of parts. 
-		nParts:= fbXtsEnvironment.XpuTcIo(1).GetPartCount();
+		nParts:= fbXtsEnvironment.XpuTcIo(1).P_PartCount;
 		IF nParts <> 0 THEN
 			// Get number of modules per part and check their state
 			b48vReady:= TRUE;
@@ -455,7 +454,7 @@ IF (NOT internalMotorModuleEnabled.calcComplete) THEN
 	// Monitor DriveStatus to disallow motion commands before high drive has been achieved.
 	IF fbXtsEnvironment.P_IsInitialized THEN
 	// Get number of parts. 
-		nParts:= fbXtsEnvironment.XpuTcIo(1).GetPartCount();
+		nParts:= fbXtsEnvironment.XpuTcIo(1).P_PartCount;
 		IF nParts <> 0 THEN
 			// Get number of modules per part and check their state
 			bHighDriveReady:= TRUE;
@@ -500,6 +499,7 @@ END_VAR
 
 VAR
 	eMoverIdDetectionMode : MoverIdDetectionMode;
+	eMoverIdDetectionState : MoverIdDetectionStateEnum;
 END_VAR
 
 VAR_INST
@@ -585,14 +585,9 @@ END_FOR
 CASE nEnvironmentState OF
 	0:	// ----------------------------------------- Enable Init Items
 	
-		// Enable init Info Server if needed
-		stXtsEnvironmentConfiguration.bEnableInitInfoServer		:= Param.AUTO_POPULATE_STATIONS;
-		
-		// Enable init CA Group if needed
-		stXtsEnvironmentConfiguration.bEnableInitCaGroup		:= TRUE;
-		
-		// Set configuration of XtsUtility init
-		fbXtsEnvironment.P_XtsEnvironmentConfiguration			:= stXtsEnvironmentConfiguration;
+		// the procedure for initializing the XTS environment has changed
+		// this step previously held configuration values for the environment
+		// it is left as a placeholder for consistency with additional steps below
 		
 		// Next step
 		nEnvironmentState	:= 1;
@@ -715,17 +710,19 @@ CASE internalM1DetectState OF
 		END_IF
 		
 	100: // check if mover 1 id is avtive
-		IF NOT (XPU.GetIsMoverIdDetectionActive() OR XPU.GetIsMoverIdDetectionValid()) THEN
+		eMoverIdDetectionState := XPU.GetMoverIdDetectionState();
+		IF (eMoverIdDetectionState <> MoverIdDetectionStateEnum.Valid) THEN
 			// start the detection
 			XPU.TriggerMoverIdDetection();
 		END_IF;
 		internalM1DetectState := 110;
 		
 	110: // wait for group detection results
-		IF XPU.GetHasMoverIdDetectionError() THEN
+		eMoverIdDetectionState := XPU.GetMoverIdDetectionState();
+		IF eMoverIdDetectionState = MoverIdDetectionStateEnum.Error THEN
 			// error state
 			internalM1DetectState := 900;
-		ELSIF XPU.GetIsMoverIdDetectionValid() AND NOT XPU.GetIsMoverIdDetectionActive() THEN
+		ELSIF eMoverIdDetectionState = MoverIdDetectionStateEnum.Valid THEN
 			// detection complete
 			internalM1DetectState := 200;
 		END_IF;
@@ -1103,7 +1100,7 @@ VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[Mover1DetectionComplete := THIS^.EnvironmentIsReady AND_THEN (XPU.GetIsMoverIdDetectionValid() AND NOT XPU.GetIsMoverIdDetectionActive());
+          <ST><![CDATA[Mover1DetectionComplete := THIS^.EnvironmentIsReady AND_THEN XPU.GetMoverIdDetectionState() = MoverIdDetectionStateEnum.Valid;
 ]]></ST>
         </Implementation>
       </Get>
@@ -1143,29 +1140,18 @@ VAR_INPUT
 	PartTcIo		: I_TcIoXtsXpuPart;
 END_VAR
 VAR
-	J					: UDINT;
-	nModulesInPart		: UDINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// start with ready, to be overwritten below
-PartMotorModules48vReady := TRUE;
-// protect against no part provided
+        <ST><![CDATA[// protect against no part provided
 IF (PartTcIo = 0) THEN
 	// this part can't be ready
 	PartMotorModules48vReady := FALSE;
 	RETURN;
 END_IF
-// get number of modules
-nModulesInPart:= PartTcIo.GetModuleCount();
 
-// query each module
-FOR J := 1 TO nModulesInPart DO
-	// check for proper status, or simulation
-	IF NOT (PartTcIo.ModuleTcIo(UDINT_TO_UINT(J)).GetIsDcLinkVoltageReady()) AND NOT (fbXtsEnvironment.XpuTcIo(1).GetOperationMode() = OperationMode.Simulation) THEN
-		PartMotorModules48vReady := FALSE;
-	END_IF 
-END_FOR]]></ST>
+PartMotorModules48vReady := PartTcIo.GetIsDcLinkVoltageReady();
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="PartMotorModulesEnabled" Id="{b8e95bc3-b41f-0254-06ff-2216e86cf91e}" FolderPath="Methods\">
@@ -1174,32 +1160,18 @@ VAR_INPUT
 	PartTcIo		: I_TcIoXtsXpuPart;
 END_VAR
 VAR
-	J					: UDINT;
-	DriveStatusStorage	: UINT;
-	nModulesInPart		: UDINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// start with ready, to be overwritten below
-PartMotorModulesEnabled := TRUE;
-// protect against no part provided
+        <ST><![CDATA[// protect against no part provided
 IF (PartTcIo = 0) THEN
 	// this part can't be ready
 	PartMotorModulesEnabled := FALSE;
 	RETURN;
 END_IF
-// get number of modules
-nModulesInPart:= PartTcIo.GetModuleCount();
 
-// query each module
-FOR J := 1 TO nModulesInPart DO
-	// get the status
-	DriveStatusStorage:= PartTcIo.ModuleTcIo(UDINT_TO_UINT(J)).GetDriveStatusValue();
-	// check for proper status, or simulation
-	IF NOT (DriveStatusStorage = 4135) AND NOT (fbXtsEnvironment.XpuTcIo(1).GetOperationMode() = OperationMode.Simulation) THEN
-		PartMotorModulesEnabled := FALSE;
-	END_IF 
-END_FOR]]></ST>
+PartMotorModulesEnabled := PartTcIO.GetAreAllModulesInOp();
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="ResetStatistics" Id="{03455d1c-c490-0e78-3526-b69b05e0917b}" FolderPath="Methods\">
