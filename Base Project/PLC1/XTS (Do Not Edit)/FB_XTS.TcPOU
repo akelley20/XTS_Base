@@ -51,7 +51,11 @@ END_VAR
 VAR_INPUT
 END_VAR
 VAR_INST
-	initialized : bool;
+	initialized			: BOOL;
+	PartResetSent		: BOOL;
+	PartResetDelay		: ton;
+	Part48VReady_Rtrig	: r_trig;
+	i 					: UINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -71,8 +75,39 @@ CASE State OF
 	
 		// XTS is idle. Motive power is disabled.	
 		IF System.EnvironmentIsReady AND System.AllMotorModules48vReady AND Enable THEN
-			State						:= XTS_REGISTERING;
+			State						:= XTS_RESETTING;
 			RegisteringState			:= 0;
+		END_IF
+		
+	XTS_RESETTING:
+		// Part reset is handled outside of the state machine and monitored here before moving on
+		IF PartResetSent THEN
+			State := XTS_DETECTING_CHECK;
+			
+		END_IF
+		
+	XTS_DETECTING_CHECK:
+		// in cases where 24v power or ethercat are lost, movers can become undetected if they are on the affected motor modules
+		// check for the need to redetect movers and run the redetection sequence or jump to registering
+		IF (System.XPU.GetAreAllPositionsValid()) THEN
+			State := XTS_REGISTERING;
+		ELSE
+			System.XPU.TriggerRedetection();
+			State := XTS_DETECTING;
+		END_IF
+		
+	XTS_DETECTING:
+		// wait for the completeion of mover detection and mover 1 detection (which is implicit after the redetection call)
+		IF (System.XPU.GetAreAllPositionsValid()
+			AND MAIN.XTS.System.XPU.GetDetectionState() = DetectionStateEnum.Succeeded
+			AND MAIN.XTS.System.XPU.GetMoverIdDetectionState() = MoverIdDetectionStateEnum.Valid
+			) THEN
+			State := XTS_Registering;
+		END_IF
+			
+		// exit if the incoming enable bit is pulled
+		IF (NOT Enable) THEN
+			State := XTS_DISABLING;
 		END_IF
 		
 	XTS_REGISTERING:
@@ -138,6 +173,7 @@ CASE State OF
 	XTS_DISABLING: // -------------------------------------------
 	
 		IF System.CompleteMoverList.IsAllMoversDisabled THEN
+			PartResetSent := FALSE;
 			System.DisableGroup();
 			State			:= XTS_DISABLED;
 		END_IF
@@ -145,9 +181,22 @@ CASE State OF
 	XTS_ERROR: // ---------------------------------------------
 	XTS_DEBUG: // ---------------------------------------------	
 
-	
-
 END_CASE
+
+// monitor for conditions that require a part reset to be sent
+Part48VReady_Rtrig(Clk := System.AllMotorModules48vReady);
+IF (Part48VReady_Rtrig.Q) THEN
+	PartResetSent := FALSE;
+END_IF
+
+// send the part reset after a brief delay
+PartResetDelay(IN := (NOT PartResetSent) AND System.EnvironmentIsReady, PT := T#1S);
+IF (PartResetDelay.Q) THEN
+	PartResetSent := TRUE;
+	FOR i := 1 TO System.XPU.P_PartCount DO
+		System.XPU.PartTcIo(i).TriggerReset();
+	END_FOR;
+END_IF
 
 // call system cyclically
 System.Cyclic(NUM_MOVERS := NUM_MOVERS);
