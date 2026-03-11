@@ -162,7 +162,7 @@ END_IF
 
 *Chainable*
 
-> Executes an Absolute Move (with Collision Avoidance) to the location of the target Station, and implicitly calls that Station's [RegisterMover](../Objectives/Station#registermover) method.
+> Executes an Absolute Move (with Collision Avoidance) to the location of the target Station, and implicitly calls that Station's [RegisterMover](Objective.md#registermover) method.
 
 ```javascript
 IF xMoveToHome THEN
@@ -585,6 +585,13 @@ It is also possible to alter motion paramaters with mover methods such as `.SetV
 
 > Returns the next mover in line with respect to this mover. Specifically, it returns the closest mover with a greater Position value than the current mover, regardless of actual direction of travel.
 
+### .OTCID
+
+*OTCID*
+
+> Returns the OTCID of the underlying mover TcCOM object.
+
+This value can be necessary when using advanced features such as changing tuning parameters, adjusting feed forward values on the fly or accessing XTS environment parameters.
 
 ### .Payload
 

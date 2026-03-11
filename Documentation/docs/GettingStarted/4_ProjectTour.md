@@ -37,3 +37,9 @@ Detailed documentation for all of these objects is available in the *Code Refere
 A Main State Machine is provided in the **MAIN (PRG)**. Underneath this POU are ACTIONS (*Initializing*, *Recoverying*, *RecoverOneshot*, and *StationLogic*), which can be places to add your application-specific logic. Some basic motion code is already included which makes this project ready-to-run, but the intent is for you to overwrite these sections according to your needs.
 
 The calling architecture itself is also an example, but can be manipulated to meet your organization's preferred coding methodology.
+
+### XTS Folder Structure
+
+This project includes a folder called `XTS (Do Not Edit)`. The goal of this project is to contain system-level code changes to within this folder, and have user customized code exist outside of this folder. By using this methodology, it should be straight-forward to perform a merge in the future to update system-level code without affecting station-to-station logic and other end user code.
+
+This does not mean `XTS (Do Not Edit)` should never be edited. You're welcome to make changes to any part of this code as needed to fit your application. It just serves as a reminder that extra care will need to be taken if you eventually pull updated code from this repo into your project. TwinCAT and/or Git's merge tools should help with this process.

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.11">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.13">
   <POU Name="MoverList" Id="{6a6492c3-5dac-4c49-8708-8eab34cf4a1d}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK MoverList EXTENDS Objective IMPLEMENTS iMoverList
 VAR_INPUT
@@ -36,6 +36,31 @@ FOR i := 1 TO SIZEOF(internalRegisteredMovers) / SIZEOF(internalRegisteredMovers
 END_FOR]]></ST>
       </Implementation>
     </Method>
+    <Property Name="AllMovers" Id="{52a1695b-1d8f-0ef9-3cd3-1395c39cd0c3}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY AllMovers : ARRAY[1..Param.MAX_MOVERS] OF POINTER TO Mover]]></Declaration>
+      <Get Name="Get" Id="{ef34fbdc-dfde-05ba-0251-c668ef47ba93}">
+        <Declaration><![CDATA[VAR
+	i: ULINT;
+	destIndex : ulint;
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// returns a front-end-loaded array of pointers to movers in the current mover list
+// set up the destination index
+destIndex := 1;
+
+// test all the movers
+FOR i := 1 TO Param.MAX_MOVERS DO
+	// if there's a mover add it to the return value
+	IF (internalRegisteredMovers[i] <> 0) THEN
+		AllMovers[destIndex] := internalRegisteredMovers[i];
+		// increment the destination index
+		destIndex := destIndex + 1;
+	END_IF;
+END_FOR]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <Method Name="ApplyAllParameterSet" Id="{ee27996d-bc19-0617-3aa0-2b2a5832f4d1}" FolderPath="Methods\">
       <Declaration><![CDATA[METHOD ApplyAllParameterSet : iMoverList
 VAR_INPUT
@@ -499,31 +524,31 @@ IsAllTrackReady := allReady; // return result]]></ST>
         </Implementation>
       </Get>
     </Property>
-    <Method Name="LogicalComplement" Id="{d6bb64e7-1c08-0ac2-2a32-42be336ae034}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalComplement : MoverList
-VAR_INPUT
+    <Property Name="IsNoMoverBusy" Id="{cece049b-4403-0dbb-1591-1117ce3abf4b}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY IsNoMoverBusy : BOOL]]></Declaration>
+      <Get Name="Get" Id="{31873de7-e1fb-04a5-1fa5-4b95bfc590a7}">
+        <Declaration><![CDATA[VAR
+		i: ULINT;
 END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IsNoMoverBusy		:= TRUE;		// ...default
 
-VAR
-	i: UINT;
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[
-
-FOR i := 1 TO Param.MAX_MOVERS DO
-	
-	IF NOT THIS^.Contains( Mediator.MoverArray[i]^ ) THEN
-		LogicalComplement.RegisterMover( Mediator.MoverArray[i]^ );
-	END_IF
+FOR i := 1 TO SIZEOF( internalRegisteredMovers ) / SIZEOF( internalRegisteredMovers[1] ) DO
+	// check for valid mover
+	IF internalRegisteredMovers[i] <> 0 AND_THEN internalRegisteredMovers[i]^.Busy = TRUE THEN
+		IsNoMoverBusy		:= FALSE;
+	END_IF;
 
 END_FOR]]></ST>
-      </Implementation>
-    </Method>
+        </Implementation>
+      </Get>
+    </Property>
     <Method Name="LogicalDifference" Id="{a0c51d7c-09ca-0254-378e-53c1775ec0b5}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalDifference : MoverList
+      <Declaration><![CDATA[METHOD LogicalDifference : iMoverList
 VAR_INPUT
 	
-	MoverList		: MoverList;
+	MoverList		: REFERENCE TO MoverList;
 
 END_VAR
 VAR
@@ -531,23 +556,30 @@ VAR
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[
+        <ST><![CDATA[// filters this mover list by removing items from the provided mover list
+FOR i := 1 TO SIZEOF(internalRegisteredMovers) / SIZEOF(internalRegisteredMovers[1]) DO
 
-
-FOR i := 1 TO Param.MAX_MOVERS DO
-	
-	IF THIS^.Contains( Mediator.MoverArray[i]^ ) AND NOT MoverList.Contains( Mediator.MoverArray[i]^ ) THEN
-		LogicalDifference.RegisterMover( Mediator.MoverArray[i]^ );
+	// test for valid mover
+    IF internalRegisteredMovers[i] <> 0 THEN
+		// test for mover in provided list (then unregister from this list)
+		IF MoverList.Contains(internalRegisteredMovers[i]^) THEN
+			// unregister this mover, the manual way
+				internalRegisteredMovers[i]  := 0; // remove the pointer
+                internalRegisteredMoverCount := internalRegisteredMoverCount - 1;
+		END_IF
 	END_IF
+	
+END_FOR;
 
-END_FOR]]></ST>
+// return this list for chaining
+LogicalDifference := THIS^;]]></ST>
       </Implementation>
     </Method>
     <Method Name="LogicalIntersect" Id="{83ddeada-4967-0249-0f08-a02d5e1843f1}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalIntersect : MoverList
+      <Declaration><![CDATA[METHOD LogicalIntersect : iMoverList
 VAR_INPUT
 	
-	MoverList		: MoverList;
+	MoverList		: REFERENCE TO MoverList;
 
 END_VAR
 
@@ -555,31 +587,40 @@ VAR
 	i				: UINT;
 END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[
+        <ST><![CDATA[// filters this mover list by removing items from the provided mover list
+FOR i := 1 TO SIZEOF(internalRegisteredMovers) / SIZEOF(internalRegisteredMovers[1]) DO
 
-FOR i := 1 TO Param.MAX_MOVERS DO
-	
-	IF MoverList.Contains( Mediator.MoverArray[i]^ ) AND THIS^.Contains( Mediator.MoverArray[i]^ ) THEN
-		LogicalIntersect.RegisterMover( Mediator.MoverArray[i]^ );	
+	// test for valid mover
+    IF internalRegisteredMovers[i] <> 0 THEN
+		// test for a mover not in the provided list (then remove from this list)
+		IF NOT MoverList.Contains(internalRegisteredMovers[i]^) THEN
+			// unregister this mover, the manual way
+				internalRegisteredMovers[i]  := 0; // remove the pointer
+                internalRegisteredMoverCount := internalRegisteredMoverCount - 1;
+		END_IF
 	END_IF
 	
-END_FOR]]></ST>
+END_FOR;
+
+// return this list for chaining
+LogicalIntersect := THIS^;]]></ST>
       </Implementation>
     </Method>
     <Method Name="LogicalUnion" Id="{328a0d90-4052-09a0-1fd6-2c3bd426e573}" FolderPath="Methods\">
-      <Declaration><![CDATA[METHOD LogicalUnion : MoverList
+      <Declaration><![CDATA[METHOD LogicalUnion : iMoverList
 VAR_INPUT
 	
-	MoverList		: MoverList;
+	MoverList		: REFERENCE TO MoverList;
 
 END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[
+// cobmine the two lists by adding the provided list to this one
+// the register function de-duplicates
+THIS^.RegisterMoverList( MoverList );
 
-LogicalUnion.RegisterMoverList( MoverList );
-LogicalUnion.RegisterMoverList( THIS^ );
-]]></ST>
+LogicalUnion := THIS^;]]></ST>
       </Implementation>
     </Method>
     <Method Name="MoveAllToPosition" Id="{bd912cae-8475-45f4-9366-6d4e3f45dbfd}" FolderPath="Methods\">
@@ -811,111 +852,5 @@ END_FOR
 SetAllVelocity := THIS^;]]></ST>
       </Implementation>
     </Method>
-    <LineIds Name="MoverList">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.ActivateAllTrack">
-      <LineId Id="3" Count="9" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.ApplyAllParameterSet">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.Contains">
-      <LineId Id="3" Count="6" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.DisableAll">
-      <LineId Id="3" Count="11" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.EnableAll">
-      <LineId Id="3" Count="11" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.FilterDestinationStation">
-      <LineId Id="3" Count="25" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.GetMoverByLocation">
-      <LineId Id="1" Count="169" />
-    </LineIds>
-    <LineIds Name="MoverList.HaltAll">
-      <LineId Id="3" Count="11" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.IsAllMoversDisabled.Get">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.IsAllMoversHalted.Get">
-      <LineId Id="3" Count="7" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.IsAllMoversReady.Get">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.IsAllTrackReady.Get">
-      <LineId Id="3" Count="24" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.LogicalComplement">
-      <LineId Id="3" Count="7" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.LogicalDifference">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.LogicalIntersect">
-      <LineId Id="3" Count="7" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.LogicalUnion">
-      <LineId Id="3" Count="3" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.MoveAllToPosition">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.MoveAllToStation">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.MoveAllVelocity">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllAcceleration">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllDeceleration">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllDirection">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllGap">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllGapMode">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllJerk">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="MoverList.SetAllVelocity">
-      <LineId Id="3" Count="8" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
   </POU>
 </TcPlcObject>

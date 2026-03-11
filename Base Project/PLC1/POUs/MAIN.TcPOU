@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
   <POU Name="MAIN" Id="{e5121501-3133-07a7-12bf-96dcd5d9e348}" SpecialFunc="None">
-    <Declaration><![CDATA[PROGRAM MAIN
+    <Declaration>
+      <![CDATA[PROGRAM MAIN
 VAR	
 	// declare XTS with <number of movers>
 	XTS				: FB_XTS<6>;
@@ -18,9 +19,11 @@ VAR
 	Trig0MoverIndex			: UDINT;
 	Trig0MoverPosLag		: LREAL;
 END_VAR
-]]></Declaration>
+]]>
+    </Declaration>
     <Implementation>
-      <ST><![CDATA[
+      <ST>
+        <![CDATA[
 (* ======================================================================================
 
 --- XTS Starter Project ---
@@ -36,6 +39,12 @@ https://beckhoff-usa-community.github.io/XTS_Base/
 
 Bug reports, new feature requests, and general feedback is always welcome on our Github page.
 For any other questions, please reach out to your local Application Engineer.
+
+Version 2.1.0 of XTS_Base has been tested with:
+
+- TwinCAT XAE v4026.20.1
+- TF5850 XTS v4.4.5
+- TF5410 Advanced Motion v3.4.19
 
 - XTS Application Group | Beckhoff USA
 
@@ -55,7 +64,7 @@ CASE State OF
 	// off (idle) state, waiting for enable command
 	MS_OFF:
 		// wait for enable command
-		IF MainCommands.Enable THEN
+		IF MainCommands.Enable AND XTS.System.EnvironmentIsReady THEN
 			// initialize stations, positions and triggers
 			Initializing();
 			// enable the XTS
@@ -107,6 +116,8 @@ CASE State OF
 			XTS.System.CompleteMoverList.HaltAll();
             State          			:= MS_STOPPED;
 		ELSIF RecoveryComplete THEN
+			// clear any position trigers that were not consumed during recovery
+			XTS.System.MuteAllPositionTriggers();
 			// recovery sequence is complete, move on to run state
 			State					:= MS_RUNNING;
         END_IF
@@ -140,16 +151,30 @@ CASE State OF
 		IF XTS.State = XTS_DISABLED THEN
 			State					:= MS_OFF;
 		END_IF;
+		
+	MS_ERROR:
+		// and error has occured
+		// the recovery from this is application dependent and can range from disabling and re-enabling the XTS
+		// to specific needs for each mover/station/zone and how to clear them of tooling and/or defective product
+		
+		// the simplest form of error handling where the XTS is disabled and re-enabled is available as this commented code below
+// 		IF NOT MainCommands.Enable THEN
+// 			XTS.Enable := FALSE;
+// 			State					:= MS_OFF;
+// 		END_IF;
+			
 	
 END_CASE
 
 // call the main XTS logic
 XTS.CyclicLogic();
-]]></ST>
+]]>
+      </ST>
     </Implementation>
     <Action Name="Initializing" Id="{0bad743d-cb82-0efe-1988-42b77153463d}">
       <Implementation>
-        <ST><![CDATA[// XTS Object Init
+        <ST>
+          <![CDATA[// XTS Object Init
 XTS.Station[0].Position 		:= 5;
 XTS.Station[1].Position 		:= 750;
 XTS.Station[2].Position 		:= 1200;
@@ -184,12 +209,14 @@ XTS.InitialParameterSet.Direction		:= Tc3_Mc3Definitions.MC_Direction.mcDirectio
 
 MainCommands.lowVelocity	:= 300;
 MainCommands.mediumVelocity	:= 800;
-MainCommands.highVelocity	:= 1200;]]></ST>
+MainCommands.highVelocity	:= 1200;]]>
+        </ST>
       </Implementation>
     </Action>
     <Action Name="Recovering" Id="{4b8b03ac-750a-0276-1b31-6724bd5608d0}">
       <Implementation>
-        <ST><![CDATA[// this state is called until all movers have completed their desired recovery tasks
+        <ST>
+          <![CDATA[// this state is called until all movers have completed their desired recovery tasks
 
 // wait for all movers to reach the standstill state and one mover at station 0
 IF (XTS.System.CompleteMoverList.IsAllMoversHalted AND XTS.Station[0].MoverInPosition) THEN
@@ -200,30 +227,36 @@ END_IF
 IF XTS.PositionTrigger[3].MoverPassedPosition THEN
 	XTS.PositionTrigger[3].CurrentMover.SetVelocity(MainCommands.mediumVelocity).MoveToStation(XTS.Station[0]);
 	XTS.PositionTrigger[3].MuteCurrent();
-END_IF]]></ST>
+END_IF]]>
+        </ST>
       </Implementation>
     </Action>
     <Action Name="RecoverOneshot" Id="{b08aba9f-35eb-0e63-04bc-615de48f82c9}">
       <Implementation>
-        <ST><![CDATA[// this action is called one time after the start command is issued
+        <ST>
+          <![CDATA[// this action is called one time after the start command is issued
 // it is intended to provide a single command to each mover to facilitate recovery
 // other commands such as resetting counters and timers should also be carried out here
+
+// clear any position trigers that were not consumed before the restart
+XTS.System.MuteAllPositionTriggers();
 
 // send all movers to station 0
 XTS.System.CompleteMoverList.SetAllVelocity(MainCommands.mediumVelocity).MoveAllToStation( XTS.Station[0] );
 //movers near station 0 (zone 0) need to first move away from the station
 XTS.Zone[0].CurrentMoverList.MoveAllVelocity(MainCommands.lowVelocity);
-XTS.PositionTrigger[3].MuteCurrent();
 // Restart statistics
 XTS.System.ResetStatistics();
 
 // Reinit nextStation
-nextStation := 4;]]></ST>
+nextStation := 4;]]>
+        </ST>
       </Implementation>
     </Action>
     <Action Name="StationLogic" Id="{1adacb9d-add1-0f3c-1a94-78c322ce5f05}">
       <Implementation>
-        <ST><![CDATA[		(*Mover routing logic should be written here to define the system's operating behavior.
+        <ST>
+          <![CDATA[		(*Mover routing logic should be written here to define the system's operating behavior.
 		Station implementations, Position Trigger logic, etc. In general, you can remove the example code
 		here down to the short line break that looks like this: // ============= *)
 	
@@ -231,12 +264,7 @@ nextStation := 4;]]></ST>
         IF XTS.Station[0].MoverInPosition THEN
             StationTimer[0](IN := TRUE, PT := T#1000MS);
             IF StationTimer[0].Q THEN
-                XTS.Mover[XTS.Station[0].CurrentMover.MoverIndex].MoveToStationByRampTime(
-					DestinationStation:= XTS.Station[1], 
-					Velocity:= 500, 
-					RampTime:= 1.5, 
-					Stiffness:= 0.5, 
-					Gap:= 85);
+                XTS.Station[0].CurrentMover.MoveToStation(DestinationStation:= XTS.Station[1]);
             END_IF
         ELSE
             StationTimer[0](IN := FALSE);
@@ -301,7 +329,8 @@ nextStation := 4;]]></ST>
             XTS.PositionTrigger[2].CurrentMover.SetVelocity(MainCommands.lowVelocity);
             XTS.PositionTrigger[2].CurrentMover.MoveToStation(XTS.Station[0]);
             XTS.PositionTrigger[2].MuteCurrent();
-        END_IF]]></ST>
+        END_IF]]>
+        </ST>
       </Implementation>
     </Action>
   </POU>

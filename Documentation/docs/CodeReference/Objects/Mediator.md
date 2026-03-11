@@ -28,10 +28,54 @@ Update the count of each object according to the needs of the system in this lis
 
 > Required to be called once per scan. The Mediator will then call all necessary .Cyclic() methods for the objects that are registered to it.
 
+### PartMotorModules48vReady
+*PartMotorModules48vReady( PartTcIo : I_TcIoXtsXpuPart )*
+
+> Returns true if all motor modules on the part have 48v available.
+
+This method is used internally during enable and is not needed in most use cases. It is provided for the infrequent application where a portion of the XTS track has 48V power removed, often in relation to a nearby guard door being opened. This kind of application has significant safety considerations that need to be studied via a risk assessment, which is outside the scope of this documentation.
+
+
+### PartMotorModulesEnabled
+*PartMotorModulesEnabled( PartTcIo : I_TcIoXtsXpuPart )*
+
+> Returns true if all motor modules on the part are ready.
+
+Ready consists of 24V and 48V being present, and the motor module has completed its internal power up sequence after receiving 48V.
+
+`PartMotorModules48vReady` should be checked prior to issuing enable commands and when the enable commands compete, this value will become true. 
+
+This method is used internally during enable and is not needed in most use cases. It is provided for the infrequent application where a portion of the XTS track has 48V power removed, often in relation to a nearby guard door being opened.This kind of application has significant safety considerations that need to be studied via a risk assessment, which is outside the scope of this documentation.
+
+```javascript
+// declaration
+PartToTest : I_TcIoXtsXpuPart;
+
+// code
+// get a part from the XTS environment
+PartToTest := XTS.System.Environment.XpuTcIo(1).PartTcIo(1)
+// act on the state of the part's ready status
+if (XTS.System.PartMotorModulesReady(PartToTest)) THEN
+	// Alert operator system is ready
+END_IF
+```
+
+
 ### ResetStatistics
 *ResetStatistics()*
 
-Some objects provide statistics that can be used to monitor throughput, utilization, mover velocites and other values and their averages. This method resets all of the statistics collected back to zero after which they begin monitor their values again.
+> Some objects provide statistics that can be used to monitor throughput, utilization, mover velocites and other values and their averages. This method resets all of the statistics collected back to zero after which they begin monitor their values again.
+
+### MuteAllPositionTriggers
+*MuteAllPositionTriggers()*
+
+> Sends the [`.MuteCurrent()`](./PositionTrigger.md#mutecurrent) command to all position triggers.
+
+Positions triggers should be evaluated on the same scan as when their [`.MoverPassedPosition`](./PositionTrigger.md#moverpassedposition) flag has been raised to ensure no mover is missed at a position trigger. However, it is not uncommon for position triggers to only be monitored when the XTS is in the `RUN` mode, but movers may pass these triggers during the `RECOVERY` mode. In this case the `.MoverPassedPosition` flag indicates a mover has passed this position, but may not have been relevant to the code in `RUN` and could no longer be near the position trigger. To make it easy to clear out the non-relevant triggers this method can be called.
+
+!!! Note
+	This method is already called in `RECOVERY_ONESHOT` and the transition to run `RUN`. If this behavior is not desired it can be modified in `MAIN`.
+
 
 ### Other Methods
 
@@ -46,6 +90,18 @@ The following methods are used internally by the Mediator and are not intended f
 - EnableGroup
 
 ## Properties
+
+### AllMotorModules48vReady
+*BOOL*
+> Returns true if all modules in the system are reporting 48v is on and ready.
+
+See [`PartMotorModules48vReady`](#partmotormodules48vready) for use cases and sequence notes.
+
+### AllMotorModulesEnabled
+*BOOL*
+> Returns true if all motor modules have 48v and have completed the internal enable sequence.
+
+See [`PartMotorModulesEnabled`](#partmotormodulesenabled) for use cases and sequence notes.
 
 ### CompleteMoverList
 *MoverList*

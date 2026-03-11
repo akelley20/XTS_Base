@@ -8,6 +8,7 @@ theme:
         text: Arial
     features:
         - navigation.tabs
+        - content.code.copy
 
 extra_css:
     - style.css
@@ -21,9 +22,6 @@ edit_uri: ""
 markdown_extensions:
     - admonition
     - pymdownx.details
-    - pymdownx.emoji:
-        emoji_index: !!python/name:materialx.emoji.twemoji
-        emoji_generator: !!python/name:materialx.emoji.to_svg
     - pymdownx.highlight:
         linenums: true
     - pymdownx.inlinehilite
@@ -50,11 +48,14 @@ nav:
             - Track:                CodeReference/Objects/Track.md
             - Zone:                 CodeReference/Objects/Zone.md
             - System:             CodeReference/Objects/Mediator.md
+        - Parameters:           CodeReference/Parameters.md
         - Diagnostics:
             - Basics:           CodeReference/Diagnostics/Basics.md
             - ErrorMovers:      CodeReference/Diagnostics/ErrorMovers.md
             - Event Logger:     CodeReference/Diagnostics/EventLogger.md
-            - Mover Data:       CodeReference/Diagnostics/MoverData.md
+            - System Data:       CodeReference/Diagnostics/SystemData.md
             - Utility Library:  CodeReference/Diagnostics/UtilityLibrary.md
     - Examples:
+        - Application Mover:    Examples/ApplicationMover.md
         - Station to Station:   Examples/StationRouting.md
+        - Custom Objects:       Examples/CustomObjects.md

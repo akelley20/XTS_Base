@@ -106,6 +106,28 @@ This value can be changed at runtime and will update on the visualization. This 
 
 This value is only used to help calculate throughput `.Statistics` on the mover and is used in combination with the `.Blocked` property.
 
+### .Id
+
+*DINT*
+
+> A unique identifier for a station.
+
+This value is assigned by the mediator when a station is registered with it. It will return -1 until the station is registered. This parameter is typically not used during normal machine production where stations are accessed directly with `XTS.Station[]` or similar direct references. The typical use case for this parameter is to record and re-use a station target for a mover when it's motion is interrupted for safety or cold starts.
+
+```javascript
+// store the id of a mover's destination when a safety event starts
+IF Mover[1].LocalVars.CurrentDestStation <> 0 THEN
+	MoverDestination := Mover[1].LocalVars.CurrentDestStation^.Id;
+END_IF
+
+// later after safety is restored and movers need to continue to their previous destination
+IF MoverDestination > 0 THEN
+	Mover[1].MoveToStation(Mediator.StationArray[MoverDestination]^);
+END_IF
+```
+
+!!! Caution
+	The value of `.Id` is consistent from cold-start to cold-start unless stations have been added to the system such as during debug and commissioning. When adding stations to a system be careful to have a code path to ignore any previous stations IDs stored in persistent data for this specific cold-start.
 
 ### .MoverInPosition
 
@@ -114,14 +136,14 @@ This value is only used to help calculate throughput `.Statistics` on the mover 
 > Status boolean indicating that a mover is currently docked with the Station
 
 
-### .TrackedMoverCount
+### .RegisteredMoverCount
 
 *USINT*
 
 > Simply reports the number of Movers that are currently registered with the Station. Because Stations automatically deregister movers that are not currently destined for this Station, this value also represents the current number of incoming movers.
 
 !!! Note
-	This property is part of [Objective](./Objective.md#trackedmovercount) but is frequently used with stations and can be accessed as part of the Station object.
+	This property is part of [Objective](./Objective.md#registeredmovercount) but is frequently used with stations and can be accessed as part of the Station object.
 
 ### .Position
 
@@ -129,7 +151,7 @@ This value is only used to help calculate throughput `.Statistics` on the mover 
 
 > Current placement of the Station along the track
 
-This value is also used to place a marker on the visualization tools representing the station. See [Visualization](../../GettingStarted/Visualization.md).
+This value is also used to place a marker on the visualization tools representing the station. See [Visualization](../../GettingStarted/6_Visualization.md).
 
 
 ### .Statistics
@@ -187,11 +209,11 @@ END_IF
 
 ```javascript
 // Immediately redirect all incoming shuttles to Station 1 instead of Station 0
-FOR i := 0 TO Station[0].TrackedMoverCount-1 DO
-	targetMover := Station[0].TrackedMovers[i];
+FOR i := 0 TO Station[0].RegisteredMoverCount-1 DO
+	targetMover := Station[0].RegisteredMovers[i];
 	targetMover^.MoveToStation( Station[1] );
 END_FOR
 ```
 ### Station Labeling In Viewing Tools
 
-See [Visualization](../../GettingStarted/Visualization.md)
+See [Visualization](../../GettingStarted/6_Visualization.md)

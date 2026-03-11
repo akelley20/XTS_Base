@@ -22,6 +22,14 @@ Version 2.x is the result of years of deploying this code on production equipmen
 
 The 2.x revision overhauls this boilerplate code and moves the majority of it into a new object called just once in MAIN. This also provides the ability to more easily act on groups of movers and adds additional features to movers. The interface to Movers, Stations, PositionTriggers and other objects remains nearly identical, if not the same to reduce any learning curve in transitioning to this version. Finally, by removing boilerplate code we streamline the user facing side of the XTS controls and make it more straight-forward as to where to begin coding your application.
 
+### TwinCAT versions
+
+Version 2.1.0 of XTS_Base has been tested with:
+
+- TwinCAT XAE v4026.20.1
+- TF5850 XTS v4.4.5
+- TF5410 Advanced Motion v3.4.19
+
 ### Upgrade recommendations
 
 Because of the nature of equipment in industrial facilities, validation cycles and uptime considerations we only recommend using Version 2.x on new projects.

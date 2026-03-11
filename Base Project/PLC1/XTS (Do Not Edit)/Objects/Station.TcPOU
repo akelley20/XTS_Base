@@ -9,6 +9,7 @@ VAR
     internalPosition 				: LREAL;
 	internalTrack 					: REFERENCE TO Track; 
 	internalGroupSize				: DINT := 1;	// used for calculating blocked statistics for multi-up stations
+	internalId						: DINT := -1;
 	
 	internalStationOccupiedTimer	: TON;
 	internalStationEmptyTimer		: TON;
@@ -272,6 +273,25 @@ END_VAR
 ]]></Declaration>
         <Implementation>
           <ST><![CDATA[internalGroupSize := GroupSize;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="ID" Id="{5870e601-f1a8-0db6-1e9f-517ffe836073}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY ID : UDINT]]></Declaration>
+      <Get Name="Get" Id="{28b6f245-44fd-0759-2a9e-13bc634b848f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ID := dint_to_udint(internalId);]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{719162ec-9f64-0d7b-389b-a7f3a886f102}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[internalId := udint_to_dint(ID);]]></ST>
         </Implementation>
       </Set>
     </Property>

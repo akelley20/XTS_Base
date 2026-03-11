@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.17">
   <POU Name="Mediator" Id="{164d51b4-07ec-0e46-0eb0-392af39d7d3a}" SpecialFunc="None">
     <Declaration><![CDATA[{attribute 'reflection'}
 FUNCTION_BLOCK Mediator
@@ -8,9 +8,9 @@ VAR_INPUT
 	MoverArray				: ARRAY [1..Param.MAX_MOVERS] OF POINTER TO Mover;
 	
 	MoverListArray			: ARRAY [0..Param.NUM_MOVERLISTS-1] OF POINTER TO MoverList;
-	PositionTriggerArray	: ARRAY [0..Param.NUM_POSITIONTRIGGERS-1] OF POINTER TO PositionTrigger;
-	StationArray			: ARRAY [0..Param.NUM_STATIONS-1] OF POINTER TO Station;
-	ZoneArray				: ARRAY [0..Param.NUM_ZONES-1] OF POINTER TO Zone;
+	PositionTriggerArray	: ARRAY [0..Param.MAX_POSITIONTRIGGERS-1] OF POINTER TO PositionTrigger;
+	StationArray			: ARRAY [0..Param.MAX_STATIONS-1] OF POINTER TO Station;
+	ZoneArray				: ARRAY [0..Param.MAX_ZONES-1] OF POINTER TO Zone;
 	TrackArray				: ARRAY [0..Param.NUM_TRACKS] OF POINTER TO Track;	// track 0 is a special absolute case, this makes the array 1 larger than normal	
 
 	GROUP_REF				: AXES_GROUP_REF;
@@ -39,19 +39,12 @@ VAR
 	
 	// implements memoization of Mediator.AllMotorModulesReady
 	// so it is only computed once per scan when needed
-	internalMotorModuleStatus		:  MotorModuleStatus_typ;
+	internalMotorModuleEnabled		:  MotorModuleStatus_typ;
+	internalMotorModule48v			:  MotorModuleStatus_typ;
 
-	bHighDriveReady			: BOOL;
-	bControlVoltageReady	: BOOL;
-	nParts					: UDINT;
-	nModulesInPart			: UDINT;
-	ControlVoltageStorage	: REAL;
-	bMoverRedectionRequired	: BOOL;
-	
 	// ========= XTS Utility Diagnostics =========
 	fbXtsEnvironment				: FB_TcIoXtsEnvironment;
 	fbXtsEnvironmentVisu			: FB_XtsEnvironmentVisu;
-	stXtsEnvironmentConfiguration	: ST_XtsEnvironmentConfiguration;	
 	nEnvironmentState				: INT;
 	internalInfoServerOTCID			: UDINT;
 
@@ -85,8 +78,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[
@@ -106,11 +99,17 @@ IF __ISVALIDREF( Mover ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF	
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddMover System Array is full. %s not added. Check Params.MAX_MOVERS' , Mover.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		
@@ -137,7 +136,7 @@ END_IF
 internalMoverListRecalc := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="AddMoverList" Id="{fa372345-a99c-01d2-2d94-cc2fd6bab53d}" FolderPath="Methods\">
+    <Method Name="AddMoverList" Id="{fa372345-a99c-01d2-2d94-cc2fd6bab53d}">
       <Declaration><![CDATA[METHOD AddMoverList : BOOL
 VAR_INPUT
 	
@@ -147,8 +146,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -168,11 +167,17 @@ IF __ISVALIDREF( MoverList ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'MoverList System Array is full. %s not added. Check Params.MAX_MOVERLISTS' , MoverList.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.MoverListArray[emptyIDX]		:= ADR( MoverList );
@@ -193,8 +198,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -214,11 +219,17 @@ IF __ISVALIDREF( PositionTrigger ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddPositionTrigger System Array is full. %s not added. Check Params.MAX_POSITIONTRIGGERS' , PositionTrigger.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.PositionTriggerArray[emptyIDX]		:= ADR( PositionTrigger );
@@ -244,8 +255,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -265,14 +276,22 @@ IF __ISVALIDREF( Station ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
 	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddStation System Array is full. %s not added. Check Params.MAX_STATIONS' , Station.InstancePath);
+		RETURN;
+	END_IF;
+	
 	IF duplicateFound = FALSE THEN
 		THIS^.StationArray[emptyIDX]		:= ADR( Station );
+		// store unique index for station
+		Station.Id := emptyIDX;
 	END_IF
 END_IF]]></ST>
       </Implementation>
@@ -330,8 +349,8 @@ END_VAR
 
 VAR
 	duplicateFound		: BOOL;
-	i					: UDINT;
-	emptyIDX			: UDINT;
+	i					: DINT;
+	emptyIDX			: DINT := -1;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -351,11 +370,17 @@ IF __ISVALIDREF( Zone ) THEN
 			END_IF
 		ELSE
 			// track the first empty index
-			IF (emptyIDX = 0) THEN
+			IF (emptyIDX = -1) THEN
 				emptyIDX	:= i;
 			END_IF;
 		END_IF
 	END_FOR
+	
+	// if no empty index is available set a message and return
+	IF emptyIDX = -1 THEN
+		ADSLOGSTR( ADSLOG_MSGTYPE_WARN, 'AddZone System Array is full. %s not added. Check Params.MAX_ZONES' , Zone.InstancePath);
+		RETURN;
+	END_IF;
 	
 	IF duplicateFound = FALSE THEN
 		THIS^.ZoneArray[emptyIDX]		:= ADR( Zone );
@@ -371,47 +396,83 @@ IF __ISVALIDREF( Zone ) THEN
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Property Name="AllMotorModulesReady" Id="{e4a76f20-75da-0820-2f6d-be0ad375c645}" FolderPath="Properties\">
+    <Property Name="AllMotorModules48vReady" Id="{2499191c-7efc-00ea-283b-811d27cdd608}" FolderPath="Properties\">
       <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
-PROPERTY AllMotorModulesReady : Bool]]></Declaration>
-      <Get Name="Get" Id="{f8eb48d2-a530-04d2-2b29-7da0e49d088b}">
+PROPERTY AllMotorModules48vReady : Bool]]></Declaration>
+      <Get Name="Get" Id="{f41a50ed-5c36-04fd-1f3c-454c5cf177f1}">
         <Declaration><![CDATA[VAR
 	I				: UDINT;
-	J				: UDINT;
-	
-	DriveStatusStorage: UINT;
+	nParts			: UDINT;
+	b48vReady	: BOOL;
+	PartTcIo		: I_TcIoXtsXpuPart;
 END_VAR]]></Declaration>
         <Implementation>
-          <ST><![CDATA[// this is caculcation and ADS intensive so the result is memozied once per scan
+          <ST><![CDATA[// this is calculation and ADS intensive so the result is memozied once per scan
 
 // only run the sum if the calc bit has not been set for this scan
-IF (NOT internalMotorModuleStatus.calcComplete) THEN
+IF (NOT internalMotorModule48v.calcComplete) THEN
 	// Monitor DriveStatus to disallow motion commands before high drive has been achieved.
 	IF fbXtsEnvironment.P_IsInitialized THEN
 	// Get number of parts. 
-		nParts:= fbXtsEnvironment.XpuTcIo(1).GetPartCount();
+		nParts:= fbXtsEnvironment.XpuTcIo(1).P_PartCount;
 		IF nParts <> 0 THEN
 			// Get number of modules per part and check their state
-			bHighDriveReady:= TRUE;
+			b48vReady:= TRUE;
 			FOR I := 1 TO nParts DO 
-				nModulesInPart:= fbXtsEnvironment.XpuTcIo(1).PartTcIo(UDINT_TO_UINT(I)).GetModuleCount();
-				FOR J := 1 TO nModulesInPart DO
-					DriveStatusStorage:= fbXtsEnvironment.XpuTcIo(1).PartTcIo(UDINT_TO_UINT(I)).ModuleTcIo(UDINT_TO_UINT(J)).GetDriveStatusValue();
-					IF NOT (DriveStatusStorage = 4135) AND NOT (fbXtsEnvironment.XpuTcIo(1).GetOperationMode() = OperationMode.Simulation) THEN
-						bHighDriveReady:= FALSE;
-					END_IF 
-				END_FOR
+				PartTcIo := fbXtsEnvironment.XpuTcIo(1).PartTcIo(UDINT_TO_UINT(I));
+				// and the previous result with the result for this part
+				b48vReady := b48vReady AND PartMotorModules48vReady(PartTcIo);
 			END_FOR
 		END_IF
 	END_IF
 
 	// memoize the result
-	internalMotorModuleStatus.calcResult := bHighDriveReady;
-	internalMotorModuleStatus.calcComplete := TRUE;
+	internalMotorModule48v.calcResult := b48vReady;
+	internalMotorModule48v.calcComplete := TRUE;
 END_IF;
 
 // return the result
-AllMotorModulesReady:= internalMotorModuleStatus.calcResult;]]></ST>
+AllMotorModules48vReady:= internalMotorModule48v.calcResult;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="AllMotorModulesEnabled" Id="{e4a76f20-75da-0820-2f6d-be0ad375c645}" FolderPath="Properties\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+PROPERTY AllMotorModulesEnabled : Bool]]></Declaration>
+      <Get Name="Get" Id="{f8eb48d2-a530-04d2-2b29-7da0e49d088b}">
+        <Declaration><![CDATA[VAR
+	I				: UDINT;
+	nParts			: UDINT;
+	bHighDriveReady	: BOOL;
+	PartTcIo		: I_TcIoXtsXpuPart;
+END_VAR]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[// this is calculation and ADS intensive so the result is memozied once per scan
+
+// only run the sum if the calc bit has not been set for this scan
+IF (NOT internalMotorModuleEnabled.calcComplete) THEN
+	// Monitor DriveStatus to disallow motion commands before high drive has been achieved.
+	IF fbXtsEnvironment.P_IsInitialized THEN
+	// Get number of parts. 
+		nParts:= fbXtsEnvironment.XpuTcIo(1).P_PartCount;
+		IF nParts <> 0 THEN
+			// Get number of modules per part and check their state
+			bHighDriveReady:= TRUE;
+			FOR I := 1 TO nParts DO 
+				PartTcIo := fbXtsEnvironment.XpuTcIo(1).PartTcIo(UDINT_TO_UINT(I));
+				// and the previous result with the result for this part
+				bHighDriveReady := bHighDriveReady AND PartMotorModulesEnabled(PartTcIo);
+			END_FOR
+		END_IF
+	END_IF
+
+	// memoize the result
+	internalMotorModuleEnabled.calcResult := bHighDriveReady;
+	internalMotorModuleEnabled.calcComplete := TRUE;
+END_IF;
+
+// return the result
+AllMotorModulesEnabled:= internalMotorModuleEnabled.calcResult;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -438,6 +499,7 @@ END_VAR
 
 VAR
 	eMoverIdDetectionMode : MoverIdDetectionMode;
+	eMoverIdDetectionState : MoverIdDetectionStateEnum;
 END_VAR
 
 VAR_INST
@@ -469,7 +531,8 @@ END_VAR]]></Declaration>
 NumMovers := NUM_MOVERS;
 
 // clear memoized values for recalculation
-internalMotorModuleStatus.calcComplete := FALSE;
+internalMotorModuleEnabled.calcComplete := FALSE;
+internalMotorModule48v.calcComplete := FALSE;
 
 // regenerate the internal mover list when necessary
 IF (internalMoverListRecalc) THEN
@@ -497,13 +560,13 @@ FOR i := 1 TO Param.MAX_MOVERS DO
 	END_IF
 END_FOR
 
-FOR i := 0 TO Param.NUM_STATIONS - 1 DO
+FOR i := 0 TO Param.MAX_STATIONS - 1 DO
 	IF StationArray[i] <> 0 THEN
 		StationArray[i]^.Cyclic();
 	END_IF
 END_FOR
 
-FOR i := 0 TO Param.NUM_POSITIONTRIGGERS - 1 DO
+FOR i := 0 TO Param.MAX_POSITIONTRIGGERS - 1 DO
 	IF PositionTriggerArray[i] <> 0 THEN
 		PositionTriggerArray[i]^.Cyclic();
 	END_IF
@@ -522,14 +585,9 @@ END_FOR
 CASE nEnvironmentState OF
 	0:	// ----------------------------------------- Enable Init Items
 	
-		// Enable init Info Server if needed
-		stXtsEnvironmentConfiguration.bEnableInitInfoServer		:= Param.AUTO_POPULATE_STATIONS;
-		
-		// Enable init CA Group if needed
-		stXtsEnvironmentConfiguration.bEnableInitCaGroup		:= TRUE;
-		
-		// Set configuration of XtsUtility init
-		fbXtsEnvironment.P_XtsEnvironmentConfiguration			:= stXtsEnvironmentConfiguration;
+		// the procedure for initializing the XTS environment has changed
+		// this step previously held configuration values for the environment
+		// it is left as a placeholder for consistency with additional steps below
 		
 		// Next step
 		nEnvironmentState	:= 1;
@@ -652,17 +710,19 @@ CASE internalM1DetectState OF
 		END_IF
 		
 	100: // check if mover 1 id is avtive
-		IF NOT (XPU.GetIsMoverIdDetectionActive() OR XPU.GetIsMoverIdDetectionValid()) THEN
+		eMoverIdDetectionState := XPU.GetMoverIdDetectionState();
+		IF (eMoverIdDetectionState <> MoverIdDetectionStateEnum.Valid) THEN
 			// start the detection
 			XPU.TriggerMoverIdDetection();
 		END_IF;
 		internalM1DetectState := 110;
 		
 	110: // wait for group detection results
-		IF XPU.GetHasMoverIdDetectionError() THEN
+		eMoverIdDetectionState := XPU.GetMoverIdDetectionState();
+		IF eMoverIdDetectionState = MoverIdDetectionStateEnum.Error THEN
 			// error state
 			internalM1DetectState := 900;
-		ELSIF XPU.GetIsMoverIdDetectionValid() AND NOT XPU.GetIsMoverIdDetectionActive() THEN
+		ELSIF eMoverIdDetectionState = MoverIdDetectionStateEnum.Valid THEN
 			// detection complete
 			internalM1DetectState := 200;
 		END_IF;
@@ -824,16 +884,16 @@ IF THIS^.InfoServerIsReady AND internalEnabled AND Param.AUTO_POPULATE_STATIONS 
 			
 		40:
 			// calculate minimum number of stations that can be set up
-			nUsableStations := MIN(nInfoServerStations, Param.NUM_STATIONS);
+			nUsableStations := MIN(nInfoServerStations, Param.MAX_STATIONS);
 			workingStation := 0;
 			FOR i := 1 TO nUsableStations DO
 				workingStation := workingStation + 1;
 				// in case a sparse Station array is used, only detect stations that have a position value <> 0
-				WHILE (workingStation < Param.NUM_STATIONS AND_THEN (StationArray[workingStation] = 0 OR_ELSE StationArray[workingStation]^.Position = 0)) DO
+				WHILE (workingStation < Param.MAX_STATIONS AND_THEN (StationArray[workingStation] = 0 OR_ELSE StationArray[workingStation]^.Position = 0)) DO
 					workingStation := workingStation + 1;
 				END_WHILE
 				// check for valid working station, and exit this for loop iteration if we're outside it
-				IF workingStation >= Param.NUM_STATIONS THEN
+				IF workingStation >= Param.MAX_STATIONS THEN
 					EXIT;
 				END_IF
 				// get XTS_Base Station pointer
@@ -1040,7 +1100,7 @@ VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[Mover1DetectionComplete := THIS^.EnvironmentIsReady AND_THEN (XPU.GetIsMoverIdDetectionValid() AND NOT XPU.GetIsMoverIdDetectionActive());
+          <ST><![CDATA[Mover1DetectionComplete := THIS^.EnvironmentIsReady AND_THEN XPU.GetMoverIdDetectionState() = MoverIdDetectionStateEnum.Valid;
 ]]></ST>
         </Implementation>
       </Get>
@@ -1058,6 +1118,62 @@ END_VAR
         </Implementation>
       </Get>
     </Property>
+    <Method Name="MuteAllPositionTriggers" Id="{bc0b53da-8e8f-05bf-3533-9a0a07403ca4}" FolderPath="Methods\">
+      <Declaration><![CDATA[METHOD MuteAllPositionTriggers : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 0 TO Param.MAX_POSITIONTRIGGERS-1 DO
+	IF PositionTriggerArray[i] <> 0 THEN
+		PositionTriggerArray[i]^.MuteCurrent();
+	END_IF
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PartMotorModules48vReady" Id="{98a45699-b0a3-05f3-058d-be5a14452817}" FolderPath="Methods\">
+      <Declaration><![CDATA[METHOD PartMotorModules48vReady : BOOL
+VAR_INPUT
+	PartTcIo		: I_TcIoXtsXpuPart;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// protect against no part provided
+IF (PartTcIo = 0) THEN
+	// this part can't be ready
+	PartMotorModules48vReady := FALSE;
+	RETURN;
+END_IF
+
+PartMotorModules48vReady := PartTcIo.GetIsDcLinkVoltageReady();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PartMotorModulesEnabled" Id="{b8e95bc3-b41f-0254-06ff-2216e86cf91e}" FolderPath="Methods\">
+      <Declaration><![CDATA[METHOD PartMotorModulesEnabled : BOOL
+VAR_INPUT
+	PartTcIo		: I_TcIoXtsXpuPart;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// protect against no part provided
+IF (PartTcIo = 0) THEN
+	// this part can't be ready
+	PartMotorModulesEnabled := FALSE;
+	RETURN;
+END_IF
+
+PartMotorModulesEnabled := PartTcIO.GetAreAllModulesInOp();
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="ResetStatistics" Id="{03455d1c-c490-0e78-3526-b69b05e0917b}" FolderPath="Methods\">
       <Declaration><![CDATA[METHOD ResetStatistics : BOOL
 VAR
@@ -1066,11 +1182,15 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[// reset statistics at all postion triggers and stations
-FOR i := 0 TO Param.NUM_POSITIONTRIGGERS-1 DO
-	PositionTriggerArray[i]^.ResetStatistics();
+FOR i := 0 TO Param.MAX_POSITIONTRIGGERS-1 DO
+	IF PositionTriggerArray[i] <> 0 THEN
+		PositionTriggerArray[i]^.ResetStatistics();
+	END_IF
 END_FOR
-FOR i := 0 TO Param.NUM_STATIONS-1 DO
-	StationArray[i]^.ResetStatistics();
+FOR i := 0 TO Param.MAX_STATIONS-1 DO
+	IF StationArray[i] <> 0 THEN
+		StationArray[i]^.ResetStatistics();
+	END_IF
 END_FOR
 ]]></ST>
       </Implementation>

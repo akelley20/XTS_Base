@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.17">
   <POU Name="FB_XTS" Id="{87c35dfd-521b-066c-1ce4-3f633fe319d2}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_XTS
 VAR_GENERIC CONSTANT
@@ -32,6 +32,8 @@ VAR_OUTPUT
 	MoverPositions	: ARRAY [1..NUM_MOVERS] OF REAL;
 	MoverErrors		: ARRAY [1..NUM_MOVERS] OF BOOL;
 	MoverErrorIDs	: ARRAY [1..NUM_MOVERS] OF UDINT;
+	MoverStates		: ARRAY [1..NUM_MOVERS] OF DINT;
+	XtsState		: DINT;
 	NumMovers		: USINT;
 END_VAR
 VAR
@@ -49,7 +51,11 @@ END_VAR
 VAR_INPUT
 END_VAR
 VAR_INST
-	initialized : bool;
+	initialized			: BOOL;
+	PartResetSent		: BOOL;
+	PartResetDelay		: ton;
+	Part48VReady_Rtrig	: r_trig;
+	i 					: UINT;
 END_VAR
 ]]></Declaration>
       <Implementation>
@@ -68,9 +74,40 @@ CASE State OF
 	XTS_DISABLED: // ------------------------------------------
 	
 		// XTS is idle. Motive power is disabled.	
-		IF System.EnvironmentIsReady AND Enable THEN
-			State						:= XTS_REGISTERING;
+		IF System.EnvironmentIsReady AND System.AllMotorModules48vReady AND Enable THEN
+			State						:= XTS_RESETTING;
 			RegisteringState			:= 0;
+		END_IF
+		
+	XTS_RESETTING:
+		// Part reset is handled outside of the state machine and monitored here before moving on
+		IF PartResetSent THEN
+			State := XTS_DETECTING_CHECK;
+			
+		END_IF
+		
+	XTS_DETECTING_CHECK:
+		// in cases where 24v power or ethercat are lost, movers can become undetected if they are on the affected motor modules
+		// check for the need to redetect movers and run the redetection sequence or jump to registering
+		IF (System.XPU.GetAreAllPositionsValid()) THEN
+			State := XTS_REGISTERING;
+		ELSE
+			System.XPU.TriggerRedetection();
+			State := XTS_DETECTING;
+		END_IF
+		
+	XTS_DETECTING:
+		// wait for the completeion of mover detection and mover 1 detection (which is implicit after the redetection call)
+		IF (System.XPU.GetAreAllPositionsValid()
+			AND MAIN.XTS.System.XPU.GetDetectionState() = DetectionStateEnum.Succeeded
+			AND MAIN.XTS.System.XPU.GetMoverIdDetectionState() = MoverIdDetectionStateEnum.Valid
+			) THEN
+			State := XTS_Registering;
+		END_IF
+			
+		// exit if the incoming enable bit is pulled
+		IF (NOT Enable) THEN
+			State := XTS_DISABLING;
 		END_IF
 		
 	XTS_REGISTERING:
@@ -88,7 +125,7 @@ CASE State OF
 		System.CompleteMoverList.EnableAll();
 		
 		IF System.CompleteMoverList.IsAllMoversReady
-		 AND System.AllMotorModulesReady AND system.GroupEnabled THEN
+		 AND System.AllMotorModulesEnabled AND system.GroupEnabled THEN
 			System.ResetStatistics();
 			State	:= XTS_ACTIVATE_TRACKS;
 		END_IF
@@ -96,13 +133,13 @@ CASE State OF
 		IF NOT Enable THEN
 			Enable	:= FALSE;
 			System.CompleteMoverList.DisableAll();
-			State			:= XTS_DISABLING;
+			State			:= XTS_DISABLING_TRACK;
 		END_IF
 		
 	XTS_ACTIVATE_TRACKS:	// -------------------------------------------
 		System.CompleteMoverList.ActivateAllTrack( Track[Param.DEFAULT_TRACK] );
 		IF System.CompleteMoverList.IsAllTrackReady
-		 AND system.AllMotorModulesReady AND system.GroupEnabled THEN
+		 AND system.AllMotorModulesEnabled AND system.GroupEnabled THEN
 			System.ResetStatistics();
 			State	:= XTS_ENABLED;
 		END_IF
@@ -110,7 +147,7 @@ CASE State OF
 		IF NOT Enable THEN
 			Enable	:= FALSE;
 			System.CompleteMoverList.DisableAll();
-			State			:= XTS_DISABLING;
+			State			:= XTS_DISABLING_TRACK;
 		END_IF
 	
 	XTS_ENABLED:	// -------------------------------------------
@@ -123,12 +160,20 @@ CASE State OF
 	XTS_STOPPING:
 		IF System.CompleteMoverList.IsAllMoversHalted THEN
 			System.CompleteMoverList.DisableAll();
-			State			:= XTS_DISABLING;
+			State			:= XTS_DISABLING_TRACK;
 		END_IF
 		
+    XTS_DISABLING_TRACK:
+        System.CompleteMoverList.ActivateAllTrack(Track[0]);
+        IF System.CompleteMoverList.IsAllTrackReady THEN
+            System.CompleteMoverList.DisableAll();
+            State           := XTS_DISABLING;
+        END_IF
+        
 	XTS_DISABLING: // -------------------------------------------
 	
 		IF System.CompleteMoverList.IsAllMoversDisabled THEN
+			PartResetSent := FALSE;
 			System.DisableGroup();
 			State			:= XTS_DISABLED;
 		END_IF
@@ -136,19 +181,34 @@ CASE State OF
 	XTS_ERROR: // ---------------------------------------------
 	XTS_DEBUG: // ---------------------------------------------	
 
-	
-
 END_CASE
+
+// monitor for conditions that require a part reset to be sent
+Part48VReady_Rtrig(Clk := System.AllMotorModules48vReady);
+IF (Part48VReady_Rtrig.Q) THEN
+	PartResetSent := FALSE;
+END_IF
+
+// send the part reset after a brief delay
+PartResetDelay(IN := (NOT PartResetSent) AND System.EnvironmentIsReady, PT := T#1S);
+IF (PartResetDelay.Q) THEN
+	PartResetSent := TRUE;
+	FOR i := 1 TO System.XPU.P_PartCount DO
+		System.XPU.PartTcIo(i).TriggerReset();
+	END_FOR;
+END_IF
 
 // call system cyclically
 System.Cyclic(NUM_MOVERS := NUM_MOVERS);
 
-// update global data
+// update output data
 FOR i := 1 TO NUM_MOVERS DO
 	MoverPositions[i] := LREAL_TO_REAL(Mover[i].TrackInfo.TrackPosition);
 	MoverErrors[i] := Mover[i].Error;
 	MoverErrorIDs[i] := Mover[i].ErrorID;
+	MoverStates[i] := Mover[i].LocalVars.State;
 END_FOR
+XtsState := State;
 NumMovers := NUM_MOVERS;]]></ST>
       </Implementation>
     </Method>

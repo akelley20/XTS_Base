@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.11">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.13">
   <POU Name="Mover" Id="{461a92b9-026e-4cbb-aa50-b18297f25ecc}" SpecialFunc="None">
     <Declaration><![CDATA[{attribute 'reflection'}
 FUNCTION_BLOCK Mover IMPLEMENTS iMover;
@@ -105,7 +105,14 @@ PROPERTY CurrentDestinationTrack : DINT]]></Declaration>
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[CurrentDestinationTrack := LocalVars.CurrentDestStation.TrackId;]]></ST>
+          <ST><![CDATA[// a station destination may not yet be set, thus the nested TrackId property is invalid
+// check for this condition and return a non-existant track (-1) if this is the case
+// this edge case is most common when using MoverList.FilterByDestinationStation
+IF __ISVALIDREF(LocalVars.CurrentDestStation) THEN
+	CurrentDestinationTrack := LocalVars.CurrentDestStation.TrackId;
+ELSE
+	CurrentDestinationTrack := -1; 
+END_IF]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -294,15 +301,16 @@ CASE LocalVars.State OF
 			LocalVars.State				:= MV_ERROR;
 		ELSIF AxisReference.Status.Error THEN
 			// error reported by the axis
-			LocalVars.fbAddToGroup.Execute		:= FALSE;
-			ErrorID					:= AxisReference.Status.ErrorID;
-			ErrorOrigin				:= Concat(InstancePath, ': General NC Error during add to group');
-			LocalVars.State			:= MV_ERROR;
+			// it has been discovered that in high mover count systems this error bit can turn on for 1 scan during the reset process
+			// this code has been removed to avoid triggering an error on the system when the mover does ultimately finish
+			// enabling and being added to the group
+			// this empty elsif block remains as a debugging visual aid but it not expected to be triggered for more than 1 scan
+			// a true axis error, in the rare case one exists after a reset, will still be caught on the first scan in run mode
 		END_IF
 		
 	MV_ENABLEGROUP:	// ----------------------------------------------- have mediator enable group
 		Mediator.EnableGroup();
-		IF Mediator.GroupEnabled AND Mediator.AllMotorModulesReady THEN
+		IF Mediator.GroupEnabled AND Mediator.AllMotorModulesEnabled THEN
 			LocalVars.State := MV_RUN;
 		ELSIF Mediator.Error THEN
 			Error			:= TRUE;
@@ -668,7 +676,12 @@ END_IF;
 
 // clear cyclic track run command and wait for it to be re-enabled by the first state machine
 runCyclicTrack := FALSE;
-]]></ST>
+
+// read the mover's OTCID into memory one time when the XTS environment becomes available
+// mover index <> 0 is required for a possible startup race condition
+IF (LocalVars.OTCID = 0) AND (Mediator.EnvironmentIsReady) AND (LocalVars.MoverIndex > 0) THEN
+	LocalVars.OTCID := Mediator.XPU.P_MoverOids[LocalVars.MoverIndex];
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="Disable" Id="{2aa14795-54cd-46b8-a131-b1a8801c005f}" FolderPath="Methods\">
@@ -1003,6 +1016,9 @@ ELSE	// otherwise let 'er rip
 		LocalVars.fbMoveAbsCA[1].Execute		:= FALSE;		// if necessary, interrupt this one
 		
 		LocalVars.fbMoveAbsCA[0]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbMoveAbsCA[1].Busy = FALSE THEN
 		
@@ -1026,6 +1042,9 @@ ELSE	// otherwise let 'er rip
 		LocalVars.fbMoveAbsCA[0].Execute		:= FALSE;		// if necessary, interrupt this one
 		
 		LocalVars.fbMoveAbsCA[1]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		 
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverMoveToPositionOverload,0 );
@@ -1101,6 +1120,9 @@ ELSE	// otherwise let 'er rip
 		
 		LocalVars.fbMoveAbsCA[0]( Axis := AxisReference );
 		
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
+		
 	ELSIF LocalVars.fbMoveAbsCA[1].Busy = FALSE THEN
 		
 		LocalVars.fbMoveAbsCA[1].Jerk			:= MotionParameters.Jerk;
@@ -1121,7 +1143,10 @@ ELSE	// otherwise let 'er rip
 		LocalVars.fbMoveAbsCA[1].Execute		:= TRUE;		// execute this block, and...
 		LocalVars.fbMoveAbsCA[0].Execute		:= FALSE;		// if necessary, interrupt this one
 
-		LocalVars.fbMoveAbsCA[1]( Axis := AxisReference );	
+		LocalVars.fbMoveAbsCA[1]( Axis := AxisReference );
+		
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverMoveToStationOverload,0 );
@@ -1208,6 +1233,9 @@ ELSE
 		LocalVars.fbMoveRelCA[1].Execute		:= FALSE;		// if necessary, interrupt this one
 		
 		LocalVars.fbMoveRelCA[0]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbMoveRelCA[1].Busy = FALSE THEN
 		
@@ -1228,6 +1256,10 @@ ELSE
 		LocalVars.fbMoveRelCA[0].Execute		:= FALSE;		// if necessary, interrupt this one
 
 		LocalVars.fbMoveRelCA[1]( Axis := AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
+
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverMoveVelocityOverload,0 );
 		MsgCreate.ipArguments.Clear().AddString(THIS^.InstancePath).AddString(THIS^.SourceInstancePath).AddLReal(DesiredVelocity);
@@ -1290,6 +1322,18 @@ FOR i := 1 TO Param.MAX_MOVERS DO
 		END_IF
 	END_IF	
 END_FOR]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="OTCID" Id="{4f7dcbd2-ef63-0376-1ceb-8d14bdb8c359}" FolderPath="Properties\">
+      <Declaration><![CDATA[{attribute 'monitoring' := 'call'}
+PROPERTY OTCID : OTCID]]></Declaration>
+      <Get Name="Get" Id="{3eb2d0df-0ee9-0098-2250-7ba0b624fc3b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[OTCID := LocalVars.OTCID;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -1687,6 +1731,9 @@ ELSE
 		LocalVars.fbGearInPosAxisCA[0].BufferMode			:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosAxisCA[0]( Master := MasterAxis, Slave := THIS^.AxisReference );		
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbGearInPosAxisCA[1].Busy = FALSE THEN
 		
@@ -1718,6 +1765,9 @@ ELSE
 		LocalVars.fbGearInPosAxisCA[1].BufferMode			:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosAxisCA[1]( Master := MasterAxis, Slave := THIS^.AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverSyncToAxisOverload, 0 );
@@ -1735,7 +1785,7 @@ LocalVars.CurrentDestStation		REF= 0;
 
 IF ( newCallTime - LocalVars.lastCallSync ) > 1 THEN
 	MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverSyncToAxis, 0 );
-	MsgCreate.ipArguments.Clear().AddString(THIS^.InstancePath).AddString(THIS^.SourceInstancePath);
+	MsgCreate.ipArguments.Clear().AddString(THIS^.InstancePath).AddString(THIS^.SourceInstancePath).AdduDINT(MasterAxis.NcToPlc.AxisId);
 	MsgCreate.Send(0);
 END_IF
 
@@ -1813,6 +1863,9 @@ ELSE	// let 'er rip
 		LocalVars.fbGearInPosMoverCA[0].BufferMode				:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosMoverCA[0]( Master := LocalVars.MasterMover.AxisReference, Slave := THIS^.AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSIF LocalVars.fbGearInPosMoverCA[1].Busy = FALSE THEN
 		
@@ -1854,6 +1907,9 @@ ELSE	// let 'er rip
 		LocalVars.fbGearInPosMoverCA[1].BufferMode				:= Tc3_Mc3Definitions.MC_BUFFER_MODE.mcAborting;
 		
 		LocalVars.fbGearInPosMoverCA[1]( Master := LocalVars.MasterMover.AxisReference, Slave := THIS^.AxisReference );
+				
+		// clear the reissue flag, if a reissue was necessary this command has already applied any motion profile changes
+		LocalVars.Reissue := FALSE;
 		
 	ELSE
 		MsgCreate.CreateEx( TC_EVENTS.XtsBaseEventClass.MoverSyncToMoverOverload,0 );
@@ -1898,16 +1954,22 @@ FOR i := 0 TO Param.NUM_MOVERLISTS-1 DO
 	Mediator.MoverListArray[i]^.UnregisterMover( THIS^ );
 END_FOR
 
-FOR i := 0 TO Param.NUM_POSITIONTRIGGERS-1 DO
-	Mediator.PositionTriggerArray[i]^.UnregisterMover( THIS^ );
+FOR i := 0 TO Param.MAX_POSITIONTRIGGERS-1 DO
+	IF Mediator.PositionTriggerArray[i] <> 0 THEN
+		Mediator.PositionTriggerArray[i]^.UnregisterMover( THIS^ );
+	END_IF
 END_FOR
 
-FOR i := 0 TO Param.NUM_STATIONS-1 DO
-	Mediator.StationArray[i]^.UnregisterMover( THIS^ );
+FOR i := 0 TO Param.MAX_STATIONS-1 DO
+	IF Mediator.StationArray[i] <> 0 THEN
+		Mediator.StationArray[i]^.UnregisterMover( THIS^ );
+	END_IF;
 END_FOR
 
-FOR i := 0 TO Param.NUM_ZONES-1 DO
-	Mediator.ZoneArray[i]^.UnregisterMover( THIS^ );
+FOR i := 0 TO Param.MAX_ZONES-1 DO
+	IF Mediator.ZoneArray[i] <> 0 THEN
+		Mediator.ZoneArray[i]^.UnregisterMover( THIS^ );
+	END_IF
 END_FOR]]></ST>
       </Implementation>
     </Method>
@@ -1940,169 +2002,5 @@ END_IF
 LocalVars.lastCallValidateTrack		:= newCallTime;]]></ST>
       </Implementation>
     </Method>
-    <LineIds Name="Mover">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.ActivateTrack">
-      <LineId Id="3" Count="25" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.CurrentDestinationPosition.Get">
-      <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.CurrentDestinationTrack.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.CurrentMoveType.Get">
-      <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.CurrentObjective.Get">
-      <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.CurrentTrack.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Cyclic">
-      <LineId Id="3" Count="508" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Disable">
-      <LineId Id="3" Count="13" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Enable">
-      <LineId Id="3" Count="14" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.GroupStop">
-      <LineId Id="3" Count="30" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Halt">
-      <LineId Id="3" Count="41" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.IsCollisionAvoidanceActive.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.IsErrorMover.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.IsSyncedToAxis.Get">
-      <LineId Id="3" Count="1" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.IsSyncedToMover.Get">
-      <LineId Id="3" Count="1" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.IsTrackReady.Get">
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.LogUserEvent">
-      <LineId Id="3" Count="6" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.MasterMover.Get">
-      <LineId Id="3" Count="5" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.MoverIndex.Get">
-      <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.MoverIndex.Set">
-      <LineId Id="3" Count="0" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.MoveToPosition">
-      <LineId Id="3" Count="82" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.MoveToStation">
-      <LineId Id="3" Count="86" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.MoveVelocity">
-      <LineId Id="3" Count="85" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.NextMover.Get">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Payload.Get">
-      <LineId Id="3" Count="1" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Payload.Set">
-      <LineId Id="3" Count="1" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.PreviousMover.Get">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.ReissueCommand">
-      <LineId Id="3" Count="4" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.Reset">
-      <LineId Id="3" Count="14" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetAcceleration">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetDeceleration">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetDirection">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetGap">
-      <LineId Id="3" Count="15" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetGapMode">
-      <LineId Id="3" Count="27" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetJerk">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SetVelocity">
-      <LineId Id="3" Count="16" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SyncToAxis">
-      <LineId Id="3" Count="17" />
-      <LineId Id="23" Count="0" />
-      <LineId Id="25" Count="29" />
-      <LineId Id="57" Count="0" />
-      <LineId Id="59" Count="50" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.SyncToMover">
-      <LineId Id="3" Count="16" />
-      <LineId Id="23" Count="39" />
-      <LineId Id="66" Count="65" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.UnregisterFromAll">
-      <LineId Id="3" Count="14" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
-    <LineIds Name="Mover.ValidateTrack">
-      <LineId Id="3" Count="14" />
-      <LineId Id="2" Count="0" />
-    </LineIds>
   </POU>
 </TcPlcObject>
