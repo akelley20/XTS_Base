@@ -10,9 +10,15 @@ All XTS projects will require:
 - [TF5850](https://www.beckhoff.com/en-us/products/automation/twincat/tfxxxx-twincat-3-functions/tf5xxx-motion/tf5850.html)
 - [TF5410](https://www.beckhoff.com/en-us/products/automation/twincat/tfxxxx-twincat-3-functions/tf5xxx-motion/tf5410.html)
 
-!!! abstract "Requirement"
+### Versions
 
-    Project versions 2.0 and later require TwinCAT Build 4026
+Project versions 2.0 and later require TwinCAT Build 4026
+
+Version 2.1.0 of XTS_Base has been tested with:
+
+- TwinCAT XAE v4026.20.1
+- TF5850 XTS v4.4.5
+- TF5410 Advanced Motion v3.4.19
 
 
 ## Running the Code
