@@ -53,7 +53,7 @@ nav:
             - Basics:           CodeReference/Diagnostics/Basics.md
             - ErrorMovers:      CodeReference/Diagnostics/ErrorMovers.md
             - Event Logger:     CodeReference/Diagnostics/EventLogger.md
-            - Mover Data:       CodeReference/Diagnostics/MoverData.md
+            - System Data:       CodeReference/Diagnostics/SystemData.md
             - Utility Library:  CodeReference/Diagnostics/UtilityLibrary.md
     - Examples:
         - Application Mover:    Examples/ApplicationMover.md
